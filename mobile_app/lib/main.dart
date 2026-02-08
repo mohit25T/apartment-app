@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'routes/app_routes.dart';
 import 'services/local_notification_service.dart';
+import 'services/notification_service.dart';
+import 'core/navigation/navigation_service.dart';
 
 /// Background notification handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -18,6 +21,9 @@ void main() async {
 
   // Initialize local notifications
   LocalNotificationService.initialize();
+
+  // Initialize notification navigation handling
+  NotificationService.initialize();
 
   // Register background handler
   FirebaseMessaging.onBackgroundMessage(
@@ -44,6 +50,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey, // ✅ REQUIRED for notification navigation
       debugShowCheckedModeBanner: false,
       title: 'Apartment App',
       theme: ThemeData(

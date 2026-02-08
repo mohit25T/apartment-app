@@ -5,7 +5,7 @@ import '../auth/otp_screen.dart';
 import '../admin/admin_dashboard.dart';
 import '../admin/invite_residant.dart';
 import '../admin/invite_guard.dart';
-import '../admin/SocietyResidentsGuardsScreen.dart';
+import '../admin/society_residents_guards_screen.dart';
 import '../profile/change_email_screen.dart';
 import '../profile/change_mobile_screen.dart';
 import '../resident/resident_dashboard.dart';

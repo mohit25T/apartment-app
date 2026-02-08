@@ -136,9 +136,4 @@ class _SocietyUsersScreenState extends State<SocietyUsersScreen> {
     );
   }
 
-  String _formatDate(String? date) {
-    if (date == null) return "";
-    final d = DateTime.parse(date);
-    return "${d.day}/${d.month}/${d.year}";
-  }
 }
