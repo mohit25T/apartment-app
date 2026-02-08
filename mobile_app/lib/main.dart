@@ -19,6 +19,12 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
 
+  // 🔐 Request notification permission (IMPORTANT)
+  await NotificationService.requestPermission();
+
+  // 📱 Get & print FCM token (IMPORTANT)
+  await NotificationService.getFcmToken();
+
   // Initialize local notifications
   LocalNotificationService.initialize();
 
@@ -50,7 +56,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // ✅ REQUIRED for notification navigation
+      navigatorKey: navigatorKey, // required for notification navigation
       debugShowCheckedModeBanner: false,
       title: 'Apartment App',
       theme: ThemeData(
