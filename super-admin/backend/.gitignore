@@ -1,0 +1,28 @@
+# General
+.env
+.DS_Store
+.idea
+.vscode
+
+# Node / Backend
+node_modules/
+npm-debug.log
+
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/Runner.xcworkspace/xcuserdata
+
+*.json
+
+# Logs
+*.log

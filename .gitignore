@@ -1,0 +1,47 @@
+# ======================
+# General
+# ======================
+.env*
+.DS_Store
+.idea
+.vscode
+
+# Firebase / Secrets
+*firebase-adminsdk*.json
+
+# ======================
+# Node / Backend
+# ======================
+node_modules/
+npm-debug.log
+
+# ======================
+# Flutter
+# ======================
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ======================
+# Android
+# ======================
+android/.gradle/
+android/app/build/
+android/local.properties
+android/app/.cxx/
+
+# ======================
+# iOS
+# ======================
+ios/Pods/
+ios/Runner.xcworkspace/xcuserdata
+ios/.symlinks/
+
+# ======================
+# Logs
+# ======================
+*.log
+
+
+*.zip
