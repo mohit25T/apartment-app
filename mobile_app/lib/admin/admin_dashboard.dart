@@ -54,7 +54,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 Text(
                   "Manage Society",
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.white.withOpacity(0.8)),
                 ),
               ],
             ),
@@ -91,8 +92,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
-                // Grid of Actions
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -101,24 +100,43 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
+                    // 🔹 NEW: Generate Maintenance
+                    _buildActionCard(
+                      "Generate\nMaintenance",
+                      Icons.receipt_long_rounded,
+                      Colors.deepPurple,
+                      "/generate-maintenance",
+                    ),
+
+                    // 🔹 NEW: View All Bills
+                    _buildActionCard(
+                      "All\nMaintenance",
+                      Icons.list_alt_rounded,
+                      Colors.teal,
+                      "/admin-maintenance-list",
+                    ),
+
                     _buildActionCard(
                       "Invite\nResident",
                       Icons.group_add_rounded,
                       Colors.blueAccent,
                       "/invite-resident",
                     ),
+
                     _buildActionCard(
                       "Manage\nUsers",
                       Icons.groups_rounded,
                       Colors.orangeAccent,
                       "/society-users",
                     ),
-                     _buildActionCard(
+
+                    _buildActionCard(
                       "Invite\nGuard",
                       Icons.security_rounded,
                       Colors.green,
                       "/invite-guard",
                     ),
+
                     _buildActionCard(
                       "Visitor\nLogs",
                       Icons.history_edu_rounded,
@@ -144,11 +162,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
         ),
-      ),
-      child: Column(
-        children: [
-           // Spacer or additional stats could go here
-        ],
       ),
     );
   }
@@ -191,7 +204,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           "Access your personal dashboard",
           style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+            color: Colors.white, size: 16),
         onTap: () {
           AnimatedNavigation.pushReplacement(
             context,
@@ -203,7 +217,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color, String route) {
+  Widget _buildActionCard(
+      String title, IconData icon, Color color, String route) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
       borderRadius: BorderRadius.circular(20),

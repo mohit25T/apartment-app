@@ -54,7 +54,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                 ),
                 Text(
                   "Resident Dashboard",
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.white.withOpacity(0.8)),
                 ),
               ],
             ),
@@ -82,6 +83,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               children: [
                 if (canSwitch) _buildSwitchModeCard(),
                 const SizedBox(height: 20),
+
+                // ================= Notifications =================
                 const Text(
                   "Notifications",
                   style: TextStyle(
@@ -91,8 +94,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
-                // Primary Notification Card
+
                 _buildNotificationCard(
                   "Pending Visitor Approvals",
                   Icons.notifications_active_rounded,
@@ -100,8 +102,10 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   "/resident-visitors",
                   "Action Required",
                 ),
-                
+
                 const SizedBox(height: 24),
+
+                // ================= My Features =================
                 const Text(
                   "My Features",
                   style: TextStyle(
@@ -111,7 +115,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -120,6 +124,14 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
+                    // 🔹 NEW MAINTENANCE FEATURE
+                    _buildFeatureCard(
+                      "Maintenance\nBills",
+                      Icons.receipt_long_rounded,
+                      Colors.deepPurple,
+                      "/maintenance",
+                    ),
+
                     _buildFeatureCard(
                       "Pre-Approve\nGuest",
                       Icons.qr_code_rounded,
@@ -184,7 +196,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
             color: AppColors.primary.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.primary),
+          child: const Icon(Icons.admin_panel_settings_rounded,
+              color: AppColors.primary),
         ),
         title: const Text(
           "Switch to Admin",
@@ -244,7 +257,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -261,14 +275,16 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                size: 16, color: Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFeatureCard(String title, IconData icon, Color color, String route) {
+  Widget _buildFeatureCard(
+      String title, IconData icon, Color color, String route) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
       borderRadius: BorderRadius.circular(20),

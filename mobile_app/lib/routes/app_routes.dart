@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
+import '../admin/admin_maintenance_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/auth_check_screen.dart';
 import '../auth/otp_screen.dart';
 import '../admin/admin_dashboard.dart';
+import '../admin/society_visitor_log_screen.dart';
 import '../admin/invite_residant.dart';
 import '../admin/invite_guard.dart';
 import '../admin/society_residents_guards_screen.dart';
+import '../admin/generate_maintenance_screen.dart';
+import '../profile/profile_screen.dart';
 import '../profile/change_email_screen.dart';
 import '../profile/change_mobile_screen.dart';
+import '../resident/maintenance_screen.dart';
 import '../resident/resident_dashboard.dart';
+import '../resident/preapproved_guest_screen.dart';
+import '../resident/resident_visitor_history_screen.dart';
+import '../resident/pending_visitors_screen.dart';
 import '../guard/guard_dashboard.dart';
 import '../guard/visitor_screen.dart';
 import '../guard/delivery_entry_screen.dart';
 import '../guard/new_visitor_screen.dart';
 import '../guard/guests_otp_screen.dart';
-import '../resident/preapproved_guest_screen.dart';
-import '../resident/resident_visitor_history_screen.dart';
-import '../resident/pending_visitors_screen.dart';
-import '../profile/profile_screen.dart';
-import '../admin/society_visitor_log_screen.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => const AuthCheckScreen(),
@@ -42,4 +45,7 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/change-email': (context) => const ChangeEmailScreen(),
   '/change-mobile': (context) => const ChangeMobileScreen(),
   '/society-users': (context) => const SocietyUsersScreen(),
+  "/maintenance": (context) => const MaintenanceScreen(),
+  "/generate-maintenance": (context) => const GenerateMaintenanceScreen(),
+  "/admin-maintenance-list": (context) => const AdminMaintenanceListScreen(),
 };
