@@ -29,9 +29,7 @@ class _AdminMaintenanceListScreenState
 
     setState(() => loading = false);
 
-    if (response != null &&
-        response["success"] == true &&
-        response["data"] != null) {
+    if (response != null && response["data"] != null) {
       setState(() {
         bills = response["data"];
       });
