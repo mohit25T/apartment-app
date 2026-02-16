@@ -12,55 +12,76 @@ class MaintenanceScreen extends StatefulWidget {
 
 class _MaintenanceScreenState extends State<MaintenanceScreen> {
   bool loading = false;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+
+  int currentPage = 1;
+  final int limit = 20;
+
   List bills = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     fetchBills();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !isLoadingMore &&
+        hasMore) {
+      loadMoreBills();
+    }
   }
 
   Future<void> fetchBills() async {
-    setState(() => loading = true);
+    setState(() {
+      loading = true;
+      currentPage = 1;
+      hasMore = true;
+    });
 
-    final response = await ApiService.get("/maintenance/my-bills");
+    final response = await ApiService.get(
+        "/maintenance/my-bills?page=$currentPage&limit=$limit");
 
-    setState(() => loading = false);
-
-    if (response is List) {
+    if (response != null && response["data"] != null) {
       setState(() {
-        bills = response;
+        bills = response["data"];
+        hasMore = response["hasMore"] ?? false;
+        loading = false;
       });
     } else {
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response["message"] ?? "Failed to load bills"),
+          content: Text(response?["message"] ?? "Failed to load bills"),
           backgroundColor: AppColors.error,
         ),
       );
     }
   }
 
-  Future<void> payBill(String id) async {
-    setState(() => loading = true);
+  Future<void> loadMoreBills() async {
+    if (!hasMore) return;
 
-    final response = await ApiService.put("/maintenance/pay/$id", {});
+    setState(() => isLoadingMore = true);
 
-    setState(() => loading = false);
+    currentPage++;
 
-    if (response["message"] != null) {
-      await fetchBills(); // refresh list
+    final response = await ApiService.get(
+        "/maintenance/my-bills?page=$currentPage&limit=$limit");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response["message"])),
-      );
+    if (response != null && response["data"] != null) {
+      setState(() {
+        bills.addAll(response["data"]);
+        hasMore = response["hasMore"] ?? false;
+        isLoadingMore = false;
+      });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response["message"] ?? "Payment failed"),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      setState(() => isLoadingMore = false);
     }
   }
 
@@ -71,103 +92,87 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text("Maintenance Bills"),
-      ),
+      appBar: AppBar(title: const Text("Maintenance Bills")),
       body: loading
           ? const Center(
-              child: WalkingLoader(
-                size: 60,
-                color: AppColors.primary,
-              ),
+              child: WalkingLoader(size: 60, color: AppColors.primary),
             )
-          : bills.isEmpty
-              ? const Center(
-                  child: Text("No bills available"),
-                )
-              : RefreshIndicator(
-                  onRefresh: fetchBills,
-                  child: ListView.builder(
+          : RefreshIndicator(
+              onRefresh: fetchBills,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: bills.length + (hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == bills.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(
+                        child: WalkingLoader(size: 40),
+                      ),
+                    );
+                  }
+
+                  final bill = bills[index];
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
-                    itemCount: bills.length,
-                    itemBuilder: (context, index) {
-                      final bill = bills[index];
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Month
-                            Text(
-                              bill["month"],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            // Amount
-                            Text("Amount: ₹${bill["amount"]}"),
-
-                            const SizedBox(height: 8),
-
-                            // Status Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: getStatusColor(bill["status"])
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                bill["status"],
-                                style: TextStyle(
-                                  color: getStatusColor(bill["status"]),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // Pay Button
-                            bill["status"] == "Pending"
-                                ? SizedBox(
-                                    width: double.infinity,
-                                    height: 45,
-                                    child: ElevatedButton(
-                                      onPressed: loading
-                                          ? null
-                                          : () => payBill(bill["_id"]),
-                                      child: const Text("Pay Now"),
-                                    ),
-                                  )
-                                : const SizedBox(),
-                          ],
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bill["month"],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                        const SizedBox(height: 8),
+                        Text("Amount: ₹${bill["amount"]}"),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color:
+                                getStatusColor(bill["status"]).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            bill["status"],
+                            style: TextStyle(
+                              color: getStatusColor(bill["status"]),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

@@ -7,20 +7,50 @@ class ResidentVisitorsScreen extends StatefulWidget {
   const ResidentVisitorsScreen({super.key});
 
   @override
-  State<ResidentVisitorsScreen> createState() =>
-      _ResidentVisitorsScreenState();
+  State<ResidentVisitorsScreen> createState() => _ResidentVisitorsScreenState();
 }
 
 class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   List visitors = [];
   bool loading = true;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+
+  int currentPage = 1;
+  final int limit = 20;
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    loadVisitors();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !isLoadingMore &&
+        hasMore) {
+      loadMoreVisitors();
+    }
+  }
 
   Future<void> loadVisitors() async {
-    final response = await ApiService.get("/visitors");
+    setState(() {
+      loading = true;
+      currentPage = 1;
+      hasMore = true;
+    });
 
-    if (response is List) {
+    final response =
+        await ApiService.get("/visitors?page=$currentPage&limit=$limit");
+
+    if (response != null && response["data"] != null) {
       setState(() {
-        visitors = response;
+        visitors = response["data"];
+        hasMore = response["hasMore"] ?? false;
         loading = false;
       });
     } else {
@@ -28,22 +58,41 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
     }
   }
 
-  // ✅ GUARD ENTER
+  Future<void> loadMoreVisitors() async {
+    if (!hasMore) return;
+
+    setState(() => isLoadingMore = true);
+
+    currentPage++;
+
+    final response =
+        await ApiService.get("/visitors?page=$currentPage&limit=$limit");
+
+    if (response != null && response["data"] != null) {
+      setState(() {
+        visitors.addAll(response["data"]);
+        hasMore = response["hasMore"] ?? false;
+        isLoadingMore = false;
+      });
+    } else {
+      setState(() => isLoadingMore = false);
+    }
+  }
+
   Future<void> enter(String id) async {
     await ApiService.put("/visitors/enter/$id", {});
     loadVisitors();
   }
 
-  // ✅ GUARD EXIT
   Future<void> exitVisitor(String id) async {
     await ApiService.put("/visitors/exit/$id", {});
     loadVisitors();
   }
 
   @override
-  void initState() {
-    super.initState();
-    loadVisitors();
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -59,7 +108,6 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              setState(() => loading = true);
               loadVisitors();
             },
           ),
@@ -70,9 +118,19 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
           : visitors.isEmpty
               ? const Center(child: Text("No visitors found"))
               : ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(16),
-                  itemCount: visitors.length,
+                  itemCount: visitors.length + (hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index == visitors.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(
+                          child: WalkingLoader(size: 40),
+                        ),
+                      );
+                    }
+
                     final v = visitors[index];
                     final status = v["status"];
 
@@ -94,8 +152,10 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                           ListTile(
                             contentPadding: const EdgeInsets.all(16),
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.secondary.withOpacity(0.1),
-                              child: const Icon(Icons.person, color: AppColors.secondary),
+                              backgroundColor:
+                                  AppColors.secondary.withOpacity(0.1),
+                              child: const Icon(Icons.person,
+                                  color: AppColors.secondary),
                             ),
                             title: Text(
                               v["personName"] ?? "Unknown",
@@ -119,7 +179,8 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(20),
@@ -151,7 +212,8 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         onPressed: () => enter(id),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         ),
         child: const Text("MARK ENTER", style: TextStyle(color: Colors.white)),
@@ -161,7 +223,8 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         onPressed: () => exitVisitor(id),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.error,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         ),
         child: const Text("MARK EXIT", style: TextStyle(color: Colors.white)),

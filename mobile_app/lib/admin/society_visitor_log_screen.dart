@@ -13,20 +13,45 @@ class SocietyVisitorLogsScreen extends StatefulWidget {
 
 class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
   bool loading = true;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+
+  int currentPage = 1;
+  final int limit = 20;
+
   List visitors = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     loadLogs();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !isLoadingMore &&
+        hasMore) {
+      loadMoreLogs();
+    }
   }
 
   Future<void> loadLogs() async {
-    final response = await ApiService.get("/admin/Society");
+    setState(() {
+      loading = true;
+      currentPage = 1;
+      hasMore = true;
+    });
+
+    final response =
+        await ApiService.get("/admin/Society?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
       setState(() {
         visitors = response["visitors"] ?? [];
+        hasMore = response["hasMore"] ?? false;
         loading = false;
       });
     } else {
@@ -34,6 +59,33 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
         loading = false;
       });
     }
+  }
+
+  Future<void> loadMoreLogs() async {
+    if (!hasMore) return;
+
+    setState(() => isLoadingMore = true);
+
+    currentPage++;
+
+    final response =
+        await ApiService.get("/admin/Society?page=$currentPage&limit=$limit");
+
+    if (response != null && response["success"] == true) {
+      setState(() {
+        visitors.addAll(response["visitors"] ?? []);
+        hasMore = response["hasMore"] ?? false;
+        isLoadingMore = false;
+      });
+    } else {
+      setState(() => isLoadingMore = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -51,15 +103,29 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
           : visitors.isEmpty
               ? const Center(child: Text("No visitor records found"))
               : ListView.separated(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(16),
-                  itemCount: visitors.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemCount: visitors.length + (hasMore ? 1 : 0),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
+                    if (index == visitors.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(
+                          child: WalkingLoader(size: 40),
+                        ),
+                      );
+                    }
+
                     final v = visitors[index];
                     final String status = v["status"] ?? "N/A";
+
                     Color statusColor = Colors.grey;
-                    if (status == "APPROVED") statusColor = Colors.green;
-                    else if (status == "REJECTED") statusColor = Colors.red;
+                    if (status == "APPROVED")
+                      statusColor = Colors.green;
+                    else if (status == "REJECTED")
+                      statusColor = Colors.red;
                     else if (status == "PENDING") statusColor = Colors.orange;
 
                     return Container(
@@ -68,7 +134,9 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8),
                         ],
                       ),
                       child: Row(
@@ -79,7 +147,8 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                               color: AppColors.primary.withOpacity(0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.person, color: AppColors.primary),
+                            child: const Icon(Icons.person,
+                                color: AppColors.primary),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -96,18 +165,24 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.home, size: 14, color: Colors.grey.shade600),
+                                    Icon(Icons.home,
+                                        size: 14, color: Colors.grey.shade600),
                                     const SizedBox(width: 4),
                                     Text(
                                       "Flat: ${v["flatNo"] ?? "N/A"}",
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13),
                                     ),
                                     const SizedBox(width: 12),
-                                    Icon(Icons.assignment_ind, size: 14, color: Colors.grey.shade600),
+                                    Icon(Icons.assignment_ind,
+                                        size: 14, color: Colors.grey.shade600),
                                     const SizedBox(width: 4),
                                     Text(
                                       v["entryType"] ?? "Guest",
-                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13),
                                     ),
                                   ],
                                 ),
@@ -119,11 +194,13 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                             children: [
                               Text(
                                 _formatDate(v["createdAt"]),
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade500),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: statusColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
