@@ -29,12 +29,16 @@ class _AdminMaintenanceListScreenState
 
     setState(() => loading = false);
 
-    if (response is List) {
-      setState(() => bills = response);
+    if (response != null &&
+        response["success"] == true &&
+        response["data"] != null) {
+      setState(() {
+        bills = response["data"];
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response["message"] ?? "Failed to load bills"),
+          content: Text(response?["message"] ?? "Failed to load bills"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -48,7 +52,7 @@ class _AdminMaintenanceListScreenState
 
     setState(() => loading = false);
 
-    if (response["message"] != null) {
+    if (response != null && response["message"] != null) {
       await fetchBills();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +61,7 @@ class _AdminMaintenanceListScreenState
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response["message"] ?? "Failed to update"),
+          content: Text(response?["message"] ?? "Failed to update"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -126,8 +130,6 @@ class _AdminMaintenanceListScreenState
                             const SizedBox(height: 6),
                             Text("Amount: ₹${bill["amount"]}"),
                             const SizedBox(height: 10),
-
-                            // Status Badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
@@ -144,10 +146,7 @@ class _AdminMaintenanceListScreenState
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
-                            // Mark as Paid Button
                             bill["status"] == "Pending"
                                 ? SizedBox(
                                     width: double.infinity,
