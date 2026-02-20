@@ -44,7 +44,7 @@ final Map<String, WidgetBuilder> appRoutes = {
       const ResidentVisitorHistoryScreen(),
   '/change-email': (context) => const ChangeEmailScreen(),
   '/change-mobile': (context) => const ChangeMobileScreen(),
-  '/society-users': (context) => const SocietyUsersScreen(),
+  '/society-users': (context) => const UsersListScreen(),
   "/maintenance": (context) => const MaintenanceScreen(),
   "/generate-maintenance": (context) => const GenerateMaintenanceScreen(),
   "/admin-maintenance-list": (context) => const AdminMaintenanceListScreen(),

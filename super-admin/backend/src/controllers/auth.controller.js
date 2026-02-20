@@ -1,5 +1,6 @@
 import Invite from "../models/Invite.js";
 import User from "../models/User.js";
+import Society from "../models/Society.js";
 import EmailChangeRequest from "../models/EmailChangeRequest.js";
 import { signToken } from "../utils/jwt.js";
 import { saveOtp, verifyOtp } from "../utils/otpStore.js";
@@ -74,6 +75,23 @@ export const sendOtpUser = async (req, res) => {
     }
 
     const user = await User.findOne({ mobile });
+
+    if (user) {
+      const society = await Society.findById(user.societyId);
+
+      if (
+        user.status === "BLOCKED" ||
+        society?.status === "BLOCKED"
+      ) {
+        return res.status(403).json({
+          message:
+            user.status === "BLOCKED"
+              ? "Your account has been blocked. Contact admin."
+              : "Your society access has been suspended."
+        });
+      }
+    }
+
 
     // ❌ Block Super Admin from mobile app
     if (user?.roles.includes("SUPER_ADMIN")) {
@@ -171,8 +189,10 @@ export const verifyUserLogin = async (req, res) => {
   try {
     // 🔔 FCM token sent from mobile app
     const { mobile, otp, fcmToken } = req.body;
-console.log("FCM token is : ",fcmToken);
+    console.log("FCM token is : ", fcmToken);
+
     let user = await User.findOne({ mobile });
+
     let invite = null;
 
     if (!user) {

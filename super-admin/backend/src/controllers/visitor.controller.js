@@ -78,7 +78,7 @@ export const createVisitorEntry = async (req, res) => {
     });
 
     // 🔔 Visitor Arrived → Resident
-    await sendPushNotificationToMany(
+    const noti = await sendPushNotificationToMany(
       getUserTokens(resident),
       "Visitor Arrived 🚪",
       `${personName} is waiting at the gate for Flat ${normalizedFlatNo}`,
@@ -87,7 +87,7 @@ export const createVisitorEntry = async (req, res) => {
         visitorId: visitor._id.toString()
       }
     );
-
+    console.log(noti)
     res.status(201).json({
       message: "Visitor entry created successfully",
       visitor
@@ -280,15 +280,20 @@ export const markVisitorExited = async (req, res) => {
   }
 };
 
+
 /**
  * ===============================
- * 6️⃣ Get visitors (UNCHANGED)
+ * 6️⃣ Get visitors (UPDATED WITH PAGINATION)
  * ===============================
  */
 export const getVisitors = async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, page = 1, limit = 20 } = req.query;
     const { societyId, roles, userId } = req.user;
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
     // ===============================
     // 1️⃣ Base filter
@@ -296,31 +301,60 @@ export const getVisitors = async (req, res) => {
     const filter = { societyId };
 
     // ===============================
-    // 2️⃣ Status filter
+    // 2️⃣ Status filter (SAFE + CASE FIXED)
     // ===============================
     if (status) {
-      filter.status = status;
-    }
+      const normalizedStatus = status.trim().toUpperCase();
 
+      const allowedStatuses = [
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "ENTERED",
+        "EXITED"
+      ];
+
+      if (allowedStatuses.includes(normalizedStatus)) {
+        filter.status = normalizedStatus;
+      }
+    }
+   
     // ===============================
-    // 3️⃣ Flat restriction
+    // 3️⃣ Resident restriction
     // ===============================
     if (roles.includes("RESIDENT")) {
       filter.residentId = userId;
     }
 
     // ===============================
-    // 4️⃣ Fetch visitors
+    // 4️⃣ Count total records
+    // ===============================
+    const total = await VisitorLog.countDocuments(filter);
+
+    // ===============================
+    // 5️⃣ Fetch paginated data
     // ===============================
     const visitors = await VisitorLog.find(filter)
       .populate("guardId", "name mobile")
       .populate("residentId", "name flatNo")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber);
+    
+    res.json({
+      success: true,
+      data: visitors,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
+      hasMore: pageNumber * limitNumber < total
+    });
 
-    res.json(visitors);
   } catch (error) {
     console.error("GET VISITORS ERROR:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 };
 

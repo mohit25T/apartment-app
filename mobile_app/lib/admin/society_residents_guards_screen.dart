@@ -1,49 +1,72 @@
 import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
+import '../core/storage/user_storage.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
 
-class SocietyUsersScreen extends StatefulWidget {
-  const SocietyUsersScreen({super.key});
+class UsersListScreen extends StatefulWidget {
+  const UsersListScreen({super.key});
 
   @override
-  State<SocietyUsersScreen> createState() => _SocietyUsersScreenState();
+  State<UsersListScreen> createState() => _UsersListScreenState();
 }
 
-class _SocietyUsersScreenState extends State<SocietyUsersScreen> {
+class _UsersListScreenState extends State<UsersListScreen> {
+  String? currentUserId;
   bool loading = true;
   List users = [];
 
   @override
   void initState() {
     super.initState();
-    loadUsers();
+    _initialize();
   }
 
-  Future<void> loadUsers() async {
+  Future<void> _initialize() async {
+    await _loadCurrentUser();
+    await _fetchUsers();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    currentUserId = await UserStorage.getUserId();
+  }
+
+  Future<void> _fetchUsers() async {
     setState(() => loading = true);
 
-    final response = await ApiService.get("/users/by-society");
+    final response = await ApiService.get("/users/society-users");
 
-    if (response != null) {
+    if (response != null && response["success"] == true) {
       setState(() {
-        users = response;
+        users = response["users"] ?? [];
         loading = false;
       });
     } else {
       setState(() => loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to load users"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  Future<void> toggleBlockUser(String userId, bool isBlocked) async {
-    final confirm = await showDialog<bool>(
+  Future<void> toggleBlock(int index) async {
+    final user = users[index];
+    final userId = user["_id"];
+
+    final confirm = await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(isBlocked ? "Unblock User?" : "Block User?"),
+      builder: (context) => AlertDialog(
+        title: Text(
+          user["status"] == "BLOCKED" ? "Unblock User" : "Block User",
+        ),
         content: Text(
-          isBlocked
-              ? "Do you want to unblock this user?"
-              : "Do you want to block this user?",
+          user["status"] == "BLOCKED"
+              ? "Are you sure you want to unblock this user?"
+              : "Are you sure you want to block this user?",
         ),
         actions: [
           TextButton(
@@ -52,10 +75,10 @@ class _SocietyUsersScreenState extends State<SocietyUsersScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isBlocked ? Colors.green : Colors.red,
+              backgroundColor: AppColors.error,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(isBlocked ? "Unblock" : "Block"),
+            child: const Text("Confirm"),
           ),
         ],
       ),
@@ -63,9 +86,45 @@ class _SocietyUsersScreenState extends State<SocietyUsersScreen> {
 
     if (confirm != true) return;
 
-    await ApiService.patch("/block/user/$userId");
+    setState(() => loading = true);
 
-    await loadUsers(); // 🔄 refresh list
+    final response = await ApiService.patch("/block/user/$userId");
+
+    setState(() => loading = false);
+
+    if (response != null && response["status"] != null) {
+      setState(() {
+        users[index]["status"] = response["status"];
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response["message"] ?? "Updated")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to update user"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  bool shouldShowBlockButton(Map<String, dynamic> user) {
+    final List roles = user["roles"] ?? [];
+
+    final bool isAdminResident =
+        roles.contains("ADMIN") && roles.contains("RESIDENT");
+
+    final bool isSuperAdmin = roles.contains("SUPER_ADMIN");
+
+    final bool isSelf = user["_id"] == currentUserId;
+
+    if (isAdminResident || isSuperAdmin || isSelf) {
+      return false;
+    }
+
+    return true;
   }
 
   @override
@@ -73,137 +132,94 @@ class _SocietyUsersScreenState extends State<SocietyUsersScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("Residents & Guards"),
-        centerTitle: true,
+        title: const Text("Society Users"),
         backgroundColor: AppColors.primary,
-        elevation: 0,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
-          : users.isEmpty
-              ? const Center(child: Text("No users found"))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final u = users[index];
+          : RefreshIndicator(
+              onRefresh: _fetchUsers,
+              child: ListView.builder(
+                padding: const EdgeInsets.only(top: 8),
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  final bool showBlock = shouldShowBlockButton(user);
 
-                    final role = (u["roles"] != null && u["roles"].isNotEmpty)
-                        ? u["roles"][0]
-                        : "N/A";
-
-                    final bool isBlocked = u["status"] == "BLOCKED";
-                    final bool isGuard = role == "GUARD";
-
-                    return Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: isGuard 
-                                      ? Colors.blue.withOpacity(0.1) 
-                                      : Colors.orange.withOpacity(0.1),
-                                  child: Icon(
-                                    isGuard ? Icons.security : Icons.person,
-                                    color: isGuard ? Colors.blue : Colors.orange,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        u["name"] ?? "User",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        role,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isBlocked 
-                                        ? Colors.red.withOpacity(0.1) 
-                                        : Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    isBlocked ? "BLOCKED" : "ACTIVE",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: isBlocked ? Colors.red : Colors.green,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _infoRow(Icons.phone_android, u["mobile"] ?? "N/A"),
-                                    const SizedBox(height: 4),
-                                    _infoRow(Icons.email_outlined, u["email"] ?? "N/A"),
-                                  ],
-                                ),
-                                OutlinedButton(
-                                  onPressed: () => toggleBlockUser(u["_id"], isBlocked),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: isBlocked ? Colors.green : Colors.red,
-                                    side: BorderSide(color: isBlocked ? Colors.green : Colors.red),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                                  ),
-                                  child: Text(isBlocked ? "Unblock" : "Block"),
-                                ),
-                              ],
-                            ),
-                          ],
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
                         ),
-                      ),
-                    );
-                  },
-                ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-      ],
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          child: const Icon(Icons.person,
+                              color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user["name"] ?? "User",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                (user["roles"] as List?)?.join(", ") ?? "",
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user["status"] ?? "ACTIVE",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: user["status"] == "BLOCKED"
+                                      ? Colors.red
+                                      : Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (showBlock)
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: user["status"] == "BLOCKED"
+                                  ? Colors.green
+                                  : AppColors.error,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () => toggleBlock(index),
+                            child: Text(
+                              user["status"] == "BLOCKED" ? "Unblock" : "Block",
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

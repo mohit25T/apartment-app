@@ -14,6 +14,8 @@ import auditLogRoutes from "./routes/auditLog.routes.js";
 import visitorRoutes from "./routes/visitor.routes.js"
 import updateUserRoutes from "./routes/superAdmin.routes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import maintenanceRoutes from "./routes/maintenance.routes.js";
+
 
 const app = express();
 
@@ -39,5 +41,6 @@ app.use("/api/export", exportRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/user", updateUserRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 export default app;

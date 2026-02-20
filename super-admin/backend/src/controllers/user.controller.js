@@ -7,7 +7,7 @@ import VisitorLog from "../models/VisitorLog.js";
  * ==========================================
  * ✅ Email INCLUDED (for admin panels & export)
  */
-  export const getUsersByRole = async (req, res) => {
+export const getUsersByRole = async (req, res) => {
   const { role } = req.query;
 
   if (!role) {
@@ -96,19 +96,33 @@ export const getResidentVisitorHistory = async (req, res) => {
       });
     }
 
-    // ===============================
-    // ✅ Resident sees ONLY their flat visitors
-    // ===============================
-    const visitors = await VisitorLog.find({
+    // 🔹 Pagination Params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // 🔹 Base filter (ONLY resident’s visitors)
+    const filter = {
       residentId: userId,
       societyId
-    })
+    };
+
+    // 🔹 Total count
+    const totalVisitors = await VisitorLog.countDocuments(filter);
+
+    // 🔹 Fetch paginated data
+    const visitors = await VisitorLog.find(filter)
       .populate("guardId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return res.status(200).json({
       success: true,
-      totalVisitors: visitors.length,
+      totalVisitors,
+      currentPage: page,
+      totalPages: Math.ceil(totalVisitors / limit),
+      hasMore: page * limit < totalVisitors,
       visitors
     });
 
@@ -121,10 +135,11 @@ export const getResidentVisitorHistory = async (req, res) => {
   }
 };
 
+
 export const getUsersBySociety = async (req, res) => {
   try {
-    
-  const societyId = req.user.societyId;
+
+    const societyId = req.user.societyId;
     const { role } = req.query;
     if (!societyId) {
       return res.status(400).json({

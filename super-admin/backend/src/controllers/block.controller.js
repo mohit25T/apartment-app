@@ -6,6 +6,12 @@ import { auditLogger } from "../utils/auditLogger.js"; // ✅ ADDED
 export const blockUnblockUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    // ❌ Prevent self-block
+    if (req.user.userId === userId) {
+      return res.status(400).json({
+        message: "You cannot block your own account"
+      });
+    }
 
     const user = await User.findById(userId);
 

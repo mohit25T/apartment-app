@@ -68,17 +68,31 @@ export const getAllSocietyVisitors = async (req, res) => {
     }
 
     const societyId = user.societyId;
-    console.log("123", societyId)
+
+    // 🔹 Pagination Params
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // 🔹 Total Count
+    const totalVisitors = await VisitorLog.countDocuments({ societyId });
+
+    // 🔹 Fetch Paginated Data
     const visitors = await VisitorLog.find({ societyId })
       .populate("approvedBy", "name")
       .populate("guardId", "name")
       .populate("residentId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return res.status(200).json({
       success: true,
-      societyId: user.societyId,
-      totalVisitors: visitors.length,
+      societyId,
+      totalVisitors,
+      currentPage: page,
+      totalPages: Math.ceil(totalVisitors / limit),
+      hasMore: page * limit < totalVisitors,
       visitors
     });
 
@@ -90,3 +104,4 @@ export const getAllSocietyVisitors = async (req, res) => {
     });
   }
 };
+

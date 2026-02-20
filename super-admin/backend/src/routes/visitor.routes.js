@@ -84,8 +84,7 @@ router.put(
 // Admin / Secretary / Super Admin can view logs
 router.get(
     "/",
-    requireAuth,
-    requireResident, 
+    requireAuth, 
     getVisitors
 );
 

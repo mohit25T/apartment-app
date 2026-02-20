@@ -85,6 +85,3 @@ export async function sendPushNotificationToMany(
     throw error;
   }
 }
-
-
-

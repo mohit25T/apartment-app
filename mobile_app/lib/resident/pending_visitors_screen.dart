@@ -11,7 +11,7 @@ class ResidentPendingVisitorsScreen extends StatefulWidget {
       _ResidentPendingVisitorsScreenState();
 }
 
-class _ResidentPendingVisitorsScreenState
+class _ResidentPendingVisitorsScreenState     
     extends State<ResidentPendingVisitorsScreen> {
   bool loading = true;
   List visitors = [];
@@ -29,14 +29,15 @@ class _ResidentPendingVisitorsScreenState
     setState(() => loading = true);
 
     try {
-      // Backend will filter by status + flat + role
       final response = await ApiService.get(
         "/visitors?status=PENDING",
       );
 
-      if (response is List) {
+      if (response != null &&
+          response["success"] == true &&
+          response["data"] != null) {
         setState(() {
-          visitors = response;
+          visitors = response["data"];
           loading = false;
         });
       } else {
@@ -106,7 +107,8 @@ class _ResidentPendingVisitorsScreenState
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle_outline, size: 64, color: Colors.grey.withOpacity(0.5)),
+                      Icon(Icons.check_circle_outline,
+                          size: 64, color: Colors.grey.withOpacity(0.5)),
                       const SizedBox(height: 16),
                       Text(
                         "No pending visitors",
@@ -146,13 +148,16 @@ class _ResidentPendingVisitorsScreenState
                               children: [
                                 CircleAvatar(
                                   radius: 24,
-                                  backgroundColor: AppColors.secondary.withOpacity(0.1),
-                                  child: const Icon(Icons.person, color: AppColors.secondary),
+                                  backgroundColor:
+                                      AppColors.secondary.withOpacity(0.1),
+                                  child: const Icon(Icons.person,
+                                      color: AppColors.secondary),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         v["personName"] ?? "Visitor",
@@ -166,7 +171,8 @@ class _ResidentPendingVisitorsScreenState
                                       if (v["purpose"] != null)
                                         Text(
                                           "Purpose: ${v["purpose"]}",
-                                          style: TextStyle(color: Colors.grey.shade600),
+                                          style: TextStyle(
+                                              color: Colors.grey.shade600),
                                         ),
                                       if (v["entryType"] == "DELIVERY")
                                         Text(
@@ -193,7 +199,8 @@ class _ResidentPendingVisitorsScreenState
                                     bottomLeft: Radius.circular(16),
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                     decoration: BoxDecoration(
                                       color: AppColors.error.withOpacity(0.1),
                                       borderRadius: const BorderRadius.only(
@@ -212,7 +219,10 @@ class _ResidentPendingVisitorsScreenState
                                   ),
                                 ),
                               ),
-                              Container(width: 1, height: 45, color: Colors.grey.shade200),
+                              Container(
+                                  width: 1,
+                                  height: 45,
+                                  color: Colors.grey.shade200),
                               Expanded(
                                 child: InkWell(
                                   onTap: () => approveVisitor(v["_id"]),
@@ -220,7 +230,8 @@ class _ResidentPendingVisitorsScreenState
                                     bottomRight: Radius.circular(16),
                                   ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                     decoration: BoxDecoration(
                                       color: Colors.green.withOpacity(0.1),
                                       borderRadius: const BorderRadius.only(
