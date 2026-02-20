@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey, // required for notification navigation
       debugShowCheckedModeBanner: false,
-      title: 'Apartment App',
+      title: 'Door Pass',
       theme: AppTheme.lightTheme,
       initialRoute: '/',
       routes: appRoutes,
