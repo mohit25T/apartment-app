@@ -34,22 +34,34 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => loading = true);
 
-    final response = await ApiService.get("/users/society-users");
+    try {
+      final response = await ApiService.get("/users/by-society");
 
-    if (response != null && response["success"] == true) {
-      setState(() {
-        users = response["users"] ?? [];
-        loading = false;
-      });
-    } else {
-      setState(() => loading = false);
+      print("API RESPONSE: $response");
+
+      if (response != null && response is List) {
+        setState(() {
+          users = response;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to load users"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("ERROR: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Failed to load users"),
+          content: Text("Something went wrong"),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() => loading = false);
     }
   }
 

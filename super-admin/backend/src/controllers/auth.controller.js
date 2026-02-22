@@ -187,12 +187,10 @@ export const verifyOtpLogin = async (req, res) => {
  */
 export const verifyUserLogin = async (req, res) => {
   try {
-    // 🔔 FCM token sent from mobile app
     const { mobile, otp, fcmToken } = req.body;
-    console.log("FCM token is : ", fcmToken);
+    console.log("FCM token is:", fcmToken);
 
     let user = await User.findOne({ mobile });
-
     let invite = null;
 
     if (!user) {
@@ -222,11 +220,13 @@ export const verifyUserLogin = async (req, res) => {
      * =====================
      */
     if (user) {
-      // 🔔 Save / update FCM token
       if (fcmToken) {
-        user.fcmToken = fcmToken;
-        user.fcmUpdatedAt = new Date();
-        await user.save();
+        // ✅ PUSH TOKEN INTO ARRAY (NO OVERWRITE)
+        if (!user.fcmTokens.includes(fcmToken)) {
+          user.fcmTokens.push(fcmToken);
+          user.fcmUpdatedAt = new Date();
+          await user.save();
+        }
       }
 
       const token = signToken({
@@ -268,8 +268,8 @@ export const verifyUserLogin = async (req, res) => {
       invitedBy: invite.invitedBy,
       status: "ACTIVE",
 
-      // 🔔 Save FCM token on first login
-      fcmToken: fcmToken || null,
+      // ✅ Store token inside ARRAY
+      fcmTokens: fcmToken ? [fcmToken] : [],
       fcmUpdatedAt: fcmToken ? new Date() : null,
     });
 
