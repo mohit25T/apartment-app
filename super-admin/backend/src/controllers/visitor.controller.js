@@ -20,7 +20,7 @@ const normalizeFlatNo = (flatNo) =>
  */
 const getUserTokens = (user) => {
   if (!user) return [];
-  if (user.fcmToken) return [user.fcmToken];
+  if (Array.isArray(user.fcmTokens)) return user.fcmTokens;
   return [];
 };
 
@@ -318,7 +318,7 @@ export const getVisitors = async (req, res) => {
         filter.status = normalizedStatus;
       }
     }
-   
+
     // ===============================
     // 3️⃣ Resident restriction
     // ===============================
@@ -340,7 +340,7 @@ export const getVisitors = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNumber);
-    
+
     res.json({
       success: true,
       data: visitors,

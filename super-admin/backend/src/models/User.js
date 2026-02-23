@@ -48,15 +48,6 @@ const userSchema = new mongoose.Schema(
     },
 
     /**
-     * 🔔 FCM TOKEN (OLD – KEEP FOR BACKWARD COMPATIBILITY)
-     * ❗ Do NOT remove yet
-     */
-    fcmToken: {
-      type: String,
-      default: null
-    },
-
-    /**
      * 🔔 FCM TOKENS (NEW – MULTI DEVICE SUPPORT)
      * Each login device adds its token here
      */
