@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const navigate = useNavigate(); // ✅ ADDED
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -30,12 +30,8 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <PageWrapper>
-        {/* ===== HEADER ===== */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
-
-          {/* ✅ CHANGE EMAIL BUTTON */}
-         
         </div>
 
         {loading && <p>Loading...</p>}
@@ -45,7 +41,8 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <MetricCard title="Societies" value={data.societies} />
             <MetricCard title="Admins" value={data.admins} />
-            <MetricCard title="Residents" value={data.residents} />
+            <MetricCard title="Owners" value={data.owners} />
+            <MetricCard title="Tenants" value={data.tenants} />
             <MetricCard title="Guards" value={data.guards} />
             <MetricCard title="Invites" value={data.invites} />
           </div>

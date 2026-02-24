@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { name: "Dashboard", path: "/" },
-  { name: "Add Society", path: "/societies/add" },
   { name: "Add Admin", path: "/admins/add" },
   { name: "Societies", path: "/societies" },
   { name: "Admin Invites", path: "/invites" },

@@ -11,9 +11,8 @@ import {
     verifyGuestOtp,
     allowOtpGuestEntry
 } from "../controllers/visitor.controller.js";
-
+import upload from "../middlewares/upload.middleware.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
-
 import {
     requireGuard,
     requireResident,
@@ -32,6 +31,7 @@ router.post(
     "/create",
     requireAuth,
     requireGuard,
+    upload.single("visitorPhoto"), // ✅ NEW
     createVisitorEntry
 );
 
@@ -84,7 +84,7 @@ router.put(
 // Admin / Secretary / Super Admin can view logs
 router.get(
     "/",
-    requireAuth, 
+    requireAuth,
     getVisitors
 );
 

@@ -2,15 +2,13 @@ import User from "../models/User.js";
 import { auditLogger } from "../utils/auditLogger.js";
 
 /**
- * REPLACE ADMIN (PROMOTE EXISTING RESIDENT)
+ * REPLACE ADMIN
  * Only Super Admin
  *
  * Logic:
- * - Admin and Secretary are same person
- * - Admin lives in a flat
- * - Flat number is already stored in DB
- * - We fetch resident using mobile number
- * - FlatNo is NOT taken from request
+ * - Admin must belong to same society
+ * - New admin must be OWNER or TENANT
+ * - Flat number must exist
  */
 export const replaceAdmin = async (req, res) => {
   try {
@@ -19,7 +17,7 @@ export const replaceAdmin = async (req, res) => {
 
     if (!mobile) {
       return res.status(400).json({
-        message: "Resident mobile number is required"
+        message: "User mobile number is required"
       });
     }
 
@@ -35,24 +33,23 @@ export const replaceAdmin = async (req, res) => {
       });
     }
 
-    // 2️⃣ Find resident using mobile number
-    const resident = await User.findOne({
+    // 2️⃣ Find eligible replacement (OWNER or TENANT)
+    const newAdmin = await User.findOne({
       mobile,
       societyId: oldAdmin.societyId,
-      roles: "RESIDENT",
+      roles: { $in: ["OWNER", "TENANT"] },
       status: "ACTIVE"
     });
 
-    if (!resident) {
+    if (!newAdmin) {
       return res.status(400).json({
-        message: "Resident not found in this society"
+        message: "Eligible user (OWNER/TENANT) not found in this society"
       });
     }
 
-    // 🔒 Safety check
-    if (!resident.flatNo) {
+    if (!newAdmin.flatNo) {
       return res.status(400).json({
-        message: "Resident flat number not found"
+        message: "Flat number not found for selected user"
       });
     }
 
@@ -65,19 +62,13 @@ export const replaceAdmin = async (req, res) => {
       role => role !== "ADMIN"
     );
 
-    // Ensure RESIDENT role still exists
-    if (!oldAdmin.roles.includes("RESIDENT")) {
-      oldAdmin.roles.push("RESIDENT");
-    }
-
     await oldAdmin.save();
 
-    // ✅ Promote resident → ADMIN + RESIDENT
-    resident.roles = Array.from(
-      new Set([...resident.roles, "ADMIN"])
-    );
-
-    await resident.save();
+    // ✅ Promote new user → add ADMIN role
+    if (!newAdmin.roles.includes("ADMIN")) {
+      newAdmin.roles.push("ADMIN");
+      await newAdmin.save();
+    }
 
     /* ====================================================
        ✅ AUDIT LOG
@@ -86,9 +77,9 @@ export const replaceAdmin = async (req, res) => {
       req,
       action: "REPLACE_ADMIN",
       targetType: "USER",
-      targetId: resident._id,
+      targetId: newAdmin._id,
       societyId: oldAdmin.societyId,
-      description: `Admin replaced: ${oldAdmin.name} → ${resident.name} | Flat ${resident.flatNo}`
+      description: `Admin replaced: ${oldAdmin.name} → ${newAdmin.name} | Flat ${newAdmin.flatNo}`
     });
 
     res.json({
@@ -98,9 +89,9 @@ export const replaceAdmin = async (req, res) => {
         roles: oldAdmin.roles
       },
       newAdmin: {
-        id: resident._id,
-        roles: resident.roles,
-        flatNo: resident.flatNo
+        id: newAdmin._id,
+        roles: newAdmin.roles,
+        flatNo: newAdmin.flatNo
       }
     });
 

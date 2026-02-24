@@ -1,6 +1,6 @@
 import Society from "../models/Society.js";
 import User from "../models/User.js";
-import { auditLogger } from "../utils/auditLogger.js"; // ✅ ADDED
+import { auditLogger } from "../utils/auditLogger.js";
 
 /**
  * CREATE SOCIETY
@@ -18,7 +18,6 @@ export const createSociety = async (req, res) => {
     createdBy: req.user.userId
   });
 
-  // ✅ AUDIT LOG — SOCIETY CREATED
   await auditLogger({
     req,
     action: "CREATE_SOCIETY",
@@ -40,7 +39,7 @@ export const getAllSocieties = async (req, res) => {
 };
 
 /**
- * SOCIETY SUMMARY (FOR DASHBOARD)
+ * SOCIETY SUMMARY (UPDATED FOR OWNER / TENANT)
  */
 export const getSocietySummary = async (req, res) => {
   const { id } = req.params;
@@ -55,9 +54,14 @@ export const getSocietySummary = async (req, res) => {
     roles: "ADMIN"
   });
 
-  const residents = await User.countDocuments({
+  const owners = await User.countDocuments({
     societyId: id,
-    roles: "RESIDENT"
+    roles: "OWNER"
+  });
+
+  const tenants = await User.countDocuments({
+    societyId: id,
+    roles: "TENANT"
   });
 
   const guards = await User.countDocuments({
@@ -69,7 +73,8 @@ export const getSocietySummary = async (req, res) => {
     societyId: id,
     societyName: society.name,
     admins,
-    residents,
+    owners,
+    tenants,
     guards
   });
 };

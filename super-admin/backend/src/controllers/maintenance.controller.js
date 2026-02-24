@@ -1,11 +1,12 @@
 import Maintenance from "../models/maintenance.js";
 import User from "../models/User.js";
 import {
-    sendPushNotification,
     sendPushNotificationToMany
 } from "../services/notificationService.js";
 
-// 🔹 Admin generates bills for all residents
+/* =========================================================
+   🔹 Admin generates bills for all OWNERS
+========================================================= */
 export const generateMonthlyBills = async (req, res) => {
     try {
         const { month, amount, dueDate } = req.body;
@@ -16,14 +17,15 @@ export const generateMonthlyBills = async (req, res) => {
             });
         }
 
-        const residents = await User.find({
+        // ✅ Only OWNERS pay maintenance
+        const owners = await User.find({
             societyId: req.user.societyId,
-            roles: "RESIDENT",
+            roles: "OWNER",
         });
 
-        if (!residents.length) {
+        if (!owners.length) {
             return res.status(400).json({
-                message: "No residents found",
+                message: "No owners found",
             });
         }
 
@@ -38,12 +40,12 @@ export const generateMonthlyBills = async (req, res) => {
             });
         }
 
-        const bills = residents
-            .filter((r) => r.flatNo)
-            .map((resident) => ({
+        const bills = owners
+            .filter((o) => o.flatNo)
+            .map((owner) => ({
                 societyId: req.user.societyId,
-                residentId: resident._id,
-                flatNumber: resident.flatNo,
+                residentId: owner._id, // keeping field name same to avoid breaking DB
+                flatNumber: owner.flatNo,
                 month,
                 amount,
                 dueDate,
@@ -52,25 +54,25 @@ export const generateMonthlyBills = async (req, res) => {
 
         if (!bills.length) {
             return res.status(400).json({
-                message: "Residents missing flat numbers",
+                message: "Owners missing flat numbers",
             });
         }
 
         await Maintenance.insertMany(bills);
 
-        // 🔔 Notify all residents
-        for (const resident of residents) {
-            if (resident.fcmToken) {
-                await sendPushNotification(
-                    resident.fcmToken,
-                    "New Maintenance Bill 🧾",
-                    `Maintenance for ${month} has been generated`,
-                    {
-                        type: "MAINTENANCE_GENERATED",
-                        month,
-                    }
-                );
-            }
+        /* 🔔 MULTI-DEVICE NOTIFICATION */
+        const allTokens = owners.flatMap(o => o.fcmTokens || []);
+
+        if (allTokens.length) {
+            await sendPushNotificationToMany(
+                allTokens,
+                "New Maintenance Bill 🧾",
+                `Maintenance for ${month} has been generated`,
+                {
+                    type: "MAINTENANCE_GENERATED",
+                    month,
+                }
+            );
         }
 
         return res.status(201).json({
@@ -86,7 +88,9 @@ export const generateMonthlyBills = async (req, res) => {
 };
 
 
-// 🔹 Resident gets own bills (Paginated)
+/* =========================================================
+   🔹 OWNER gets own bills (Paginated)
+========================================================= */
 export const getResidentBills = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -112,13 +116,15 @@ export const getResidentBills = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Get Resident Bills Error:", error);
+        console.error("Get Bills Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
 
 
-// 🔹 Resident/Admin marks bill as paid
+/* =========================================================
+   🔹 Admin marks bill as paid
+========================================================= */
 export const markBillAsPaid = async (req, res) => {
     try {
         const bill = await Maintenance.findById(req.params.id)
@@ -131,10 +137,12 @@ export const markBillAsPaid = async (req, res) => {
         bill.status = "Paid";
         await bill.save();
 
-        // 🔔 Notify resident
-        if (bill.residentId?.fcmToken) {
-            await sendPushNotification(
-                bill.residentId.fcmToken,
+        // 🔔 Notify OWNER (multi-device)
+        const tokens = bill.residentId?.fcmTokens || [];
+
+        if (tokens.length) {
+            await sendPushNotificationToMany(
+                tokens,
                 "Payment Confirmed ✅",
                 `Your maintenance payment for ${bill.month} has been confirmed`,
                 {
@@ -155,7 +163,9 @@ export const markBillAsPaid = async (req, res) => {
 };
 
 
-// 🔹 Admin views all society bills (Paginated)
+/* =========================================================
+   🔹 Admin views all society bills (Paginated)
+========================================================= */
 export const getAllSocietyBills = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -165,15 +175,15 @@ export const getAllSocietyBills = async (req, res) => {
         const query = {
             societyId: req.user.societyId,
         };
+
         const total = await Maintenance.countDocuments(query);
 
         const bills = await Maintenance.find(query)
-            .populate("residentId", "name flatNo")
+            .populate("residentId", "name flatNo roles")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        console.log("Fetched society bills:", bills);
         res.json({
             data: bills,
             currentPage: page,

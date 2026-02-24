@@ -20,13 +20,12 @@ const UsersByRole = () => {
 
   const [counts, setCounts] = useState({
     admins: 0,
-    residents: 0,
+    owners: 0,
+    tenants: 0,
     guards: 0,
   });
 
-  /* =============================
-     LOAD ADMINS INITIALLY
-  ============================= */
+  /* ================= LOAD ADMINS ================= */
   useEffect(() => {
     api.get("/users?role=ADMIN").then((res) => {
       setAdmins(res.data);
@@ -37,9 +36,7 @@ const UsersByRole = () => {
     });
   }, []);
 
-  /* =============================
-     LOAD USERS BY ADMIN SOCIETY
-  ============================= */
+  /* ================= LOAD USERS ================= */
   const loadUsersByAdmin = async (role) => {
     const res = await api.get(`/users?role=${role}`);
 
@@ -51,25 +48,23 @@ const UsersByRole = () => {
 
     setCounts((p) => ({
       ...p,
-      residents: role === "RESIDENT" ? filtered.length : p.residents,
+      owners: role === "OWNER" ? filtered.length : p.owners,
+      tenants: role === "TENANT" ? filtered.length : p.tenants,
       guards: role === "GUARD" ? filtered.length : p.guards,
     }));
 
     setView(role);
   };
 
-  /* =============================
-     GO BACK
-  ============================= */
   const goBack = () => {
     setSelectedAdmin(null);
     setUsers([]);
     setView("ADMINS");
 
-    // reset sub-counts
     setCounts((p) => ({
       ...p,
-      residents: 0,
+      owners: 0,
+      tenants: 0,
       guards: 0,
     }));
   };
@@ -77,7 +72,7 @@ const UsersByRole = () => {
   return (
     <AppLayout>
       <PageWrapper>
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-3">
             {view === "ADMINS" && (
@@ -88,20 +83,21 @@ const UsersByRole = () => {
                 </span>
               </>
             )}
-            {view === "OPTIONS" && selectedAdmin && (
-              <div className="space-y-4">
-                {/* 🔹 OPTIONS HEADING */}
-                <h1 className="text-lg font-bold text-gray-800">
-                  Options for{" "}
-                  <span className="text-blue-600">{selectedAdmin.name}</span>
-                </h1>
-              </div>
-            )}
-            {view === "RESIDENT" && (
+
+            {view === "OWNER" && (
               <>
-                Residents of {selectedAdmin?.name}
+                Owners of {selectedAdmin?.name}
                 <span className="px-2 py-1 text-sm bg-green-100 text-green-700 rounded">
-                  {counts.residents}
+                  {counts.owners}
+                </span>
+              </>
+            )}
+
+            {view === "TENANT" && (
+              <>
+                Tenants of {selectedAdmin?.name}
+                <span className="px-2 py-1 text-sm bg-yellow-100 text-yellow-700 rounded">
+                  {counts.tenants}
                 </span>
               </>
             )}
@@ -126,22 +122,22 @@ const UsersByRole = () => {
               </button>
             )}
 
-            {view === "RESIDENT" && (
-              <>
-                <button
-                  onClick={() => setReplacingAdmin(selectedAdmin)}
-                  className="px-4 py-1.5 rounded-full bg-red-600 text-white text-sm hover:bg-red-700"
-                >
-                  🔁 Replace Admin
-                </button>
+            {view === "OWNER" && (
+              <button
+                onClick={() => downloadUsersCSV("OWNER")}
+                className="px-3 py-1 bg-black text-white rounded text-sm"
+              >
+                Export Owners CSV
+              </button>
+            )}
 
-                <button
-                  onClick={() => downloadUsersCSV("RESIDENT")}
-                  className="px-3 py-1 bg-black text-white rounded text-sm"
-                >
-                  Export Residents CSV
-                </button>
-              </>
+            {view === "TENANT" && (
+              <button
+                onClick={() => downloadUsersCSV("TENANT")}
+                className="px-3 py-1 bg-black text-white rounded text-sm"
+              >
+                Export Tenants CSV
+              </button>
             )}
 
             {view === "GUARD" && (
@@ -164,7 +160,7 @@ const UsersByRole = () => {
           </div>
         </div>
 
-        {/* ================= ADMINS ================= */}
+        {/* ADMIN TABLE */}
         {view === "ADMINS" && (
           <UserTable
             users={admins}
@@ -174,46 +170,40 @@ const UsersByRole = () => {
               setSelectedAdmin(a);
               setView("OPTIONS");
             }}
-            onStatusChange={() => {
-              api.get("/users?role=ADMIN").then((res) => {
-                setAdmins(res.data);
-                setCounts((p) => ({
-                  ...p,
-                  admins: res.data.length,
-                }));
-              });
-            }}
           />
         )}
 
-        {/* ================= OPTIONS ================= */}
+        {/* OPTIONS */}
         {view === "OPTIONS" && selectedAdmin && (
-          <div className="space-y-4">
-            {/* 🔹 BUTTONS */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => loadUsersByAdmin("RESIDENT")}
-                className="bg-black text-white px-4 py-2 rounded"
-              >
-                Residents
-              </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => loadUsersByAdmin("OWNER")}
+              className="bg-black text-white px-4 py-2 rounded"
+            >
+              Owners
+            </button>
 
-              <button
-                onClick={() => loadUsersByAdmin("GUARD")}
-                className="bg-black text-white px-4 py-2 rounded"
-              >
-                Guards
-              </button>
-            </div>
+            <button
+              onClick={() => loadUsersByAdmin("TENANT")}
+              className="bg-black text-white px-4 py-2 rounded"
+            >
+              Tenants
+            </button>
+
+            <button
+              onClick={() => loadUsersByAdmin("GUARD")}
+              className="bg-black text-white px-4 py-2 rounded"
+            >
+              Guards
+            </button>
           </div>
         )}
 
-        {/* ================= USERS ================= */}
-        {(view === "RESIDENT" || view === "GUARD") && (
+        {(view === "OWNER" || view === "TENANT" || view === "GUARD") && (
           <UserTable users={users} view={view} />
         )}
 
-        {/* ================= MODALS ================= */}
+        {/* MODALS (unchanged) */}
         {editingAdmin && (
           <EditAdminModal
             admin={editingAdmin}
@@ -222,10 +212,6 @@ const UsersByRole = () => {
               setEditingAdmin(null);
               api.get("/users?role=ADMIN").then((res) => {
                 setAdmins(res.data);
-                setCounts((p) => ({
-                  ...p,
-                  admins: res.data.length,
-                }));
               });
             }}
           />
@@ -238,16 +224,8 @@ const UsersByRole = () => {
             setLoading={setReplaceLoading}
             onClose={() => !replaceLoading && setReplacingAdmin(null)}
             onReplaced={() => {
-              setReplaceLoading(true);
-
               api.get("/users?role=ADMIN").then((res) => {
                 setAdmins(res.data);
-                setCounts((p) => ({
-                  ...p,
-                  admins: res.data.length,
-                }));
-
-                setReplaceLoading(false);
                 setReplacingAdmin(null);
                 setView("ADMINS");
               });

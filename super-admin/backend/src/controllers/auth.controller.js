@@ -63,7 +63,7 @@ export const sendOtp = async (req, res) => {
 /**
  * =====================================================
  * SEND OTP FOR MOBILE USERS
- * (ADMIN / RESIDENT / GUARD)
+ * (ADMIN / OWNER / TENANT / GUARD)
  * =====================================================
  */
 export const sendOtpUser = async (req, res) => {
@@ -92,7 +92,6 @@ export const sendOtpUser = async (req, res) => {
       }
     }
 
-
     // ❌ Block Super Admin from mobile app
     if (user?.roles.includes("SUPER_ADMIN")) {
       return res.status(403).json({
@@ -102,7 +101,7 @@ export const sendOtpUser = async (req, res) => {
 
     const invite = await Invite.findOne({
       mobile,
-      role: { $in: ["ADMIN", "RESIDENT", "GUARD"] },
+      role: { $in: ["ADMIN", "OWNER", "TENANT", "GUARD"] },
       status: "PENDING",
       expiresAt: { $gt: new Date() },
     });
@@ -124,7 +123,7 @@ export const sendOtpUser = async (req, res) => {
     saveOtp({ mobile, email, otp });
 
     await sendOtpEmail(email, otp);
-
+console.log("Otp:",otp);
     res.json({
       message: "OTP sent successfully to email",
       role: invite?.role || user.roles[0],
@@ -181,14 +180,13 @@ export const verifyOtpLogin = async (req, res) => {
 
 /**
  * =====================================================
- * VERIFY OTP — ADMIN / RESIDENT / GUARD
+ * VERIFY OTP — ADMIN / OWNER / TENANT / GUARD
  * 🔔 FCM TOKEN HANDLED HERE
  * =====================================================
  */
 export const verifyUserLogin = async (req, res) => {
   try {
     const { mobile, otp, fcmToken } = req.body;
-    console.log("FCM token is:", fcmToken);
 
     let user = await User.findOne({ mobile });
     let invite = null;
@@ -196,7 +194,7 @@ export const verifyUserLogin = async (req, res) => {
     if (!user) {
       invite = await Invite.findOne({
         mobile,
-        role: { $in: ["ADMIN", "RESIDENT", "GUARD"] },
+        role: { $in: ["ADMIN", "OWNER", "TENANT", "GUARD"] },
         status: "PENDING",
         expiresAt: { $gt: new Date() },
       });
@@ -221,7 +219,6 @@ export const verifyUserLogin = async (req, res) => {
      */
     if (user) {
       if (fcmToken) {
-        // ✅ PUSH TOKEN INTO ARRAY (NO OVERWRITE)
         if (!user.fcmTokens.includes(fcmToken)) {
           user.fcmTokens.push(fcmToken);
           user.fcmUpdatedAt = new Date();
@@ -235,10 +232,14 @@ export const verifyUserLogin = async (req, res) => {
         societyId: user.societyId,
       });
 
+      // ✅ ADD THIS LINE
+      const requiresProfilePhoto = !user.profileImage;
+
       return res.json({
         token,
         roles: user.roles,
         societyId: user.societyId,
+        requiresProfilePhoto, // ✅ NEW FIELD
       });
     }
 
@@ -254,9 +255,6 @@ export const verifyUserLogin = async (req, res) => {
     }
 
     const roles = [invite.role];
-    if (invite.role === "ADMIN") {
-      roles.push("RESIDENT");
-    }
 
     user = await User.create({
       name: invite.name,
@@ -267,10 +265,9 @@ export const verifyUserLogin = async (req, res) => {
       societyId: invite.societyId,
       invitedBy: invite.invitedBy,
       status: "ACTIVE",
-
-      // ✅ Store token inside ARRAY
       fcmTokens: fcmToken ? [fcmToken] : [],
       fcmUpdatedAt: fcmToken ? new Date() : null,
+      isProfileComplete: false, // ✅ FORCE FIRST TIME UPLOAD
     });
 
     invite.status = "USED";
@@ -291,10 +288,12 @@ export const verifyUserLogin = async (req, res) => {
       societyId: user.societyId,
     });
 
+    // ✅ NEW USER ALWAYS REQUIRES PHOTO
     res.json({
       token,
       roles: user.roles,
       societyId: user.societyId,
+      requiresProfilePhoto: true,
     });
   } catch (err) {
     console.error("VERIFY USER LOGIN ERROR:", err);
@@ -428,23 +427,21 @@ export const getMe = async (req, res) => {
   }
 };
 
-
 /**
  * =====================================================
  * LOGOUT USER
- * Clears FCM token so device stops receiving pushes
  * =====================================================
  */
 export const logoutUser = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const { fcmToken } = req.body;
 
-    await User.findByIdAndUpdate(userId, {
-      $set: {
-        fcmToken: null,
-        fcmUpdatedAt: null
-      }
-    });
+    if (fcmToken) {
+      await User.findByIdAndUpdate(userId, {
+        $pull: { fcmTokens: fcmToken }
+      });
+    }
 
     res.json({ message: "Logged out successfully" });
   } catch (error) {

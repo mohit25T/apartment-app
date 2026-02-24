@@ -25,14 +25,17 @@ const InviteTable = ({ invites, onResend, onCancel }) => {
               transition={{ delay: i * 0.03 }}
               className="border-t"
             >
-              <td className="p-4 font-medium">{inv.mobile}</td>
+              <td className="p-4 font-medium">
+                {inv.mobile}
+              </td>
 
               <td className="p-4 text-sm text-gray-600">
                 {inv.email || "-"} {/* ✅ ADDED */}
               </td>
               <td className="p-4 font-medium">{inv.role}</td>
-
-              <td className="p-4">{inv.societyId?.name || "-"}</td>
+              <td className="p-4">
+                {inv.societyId?.name || "-"}
+              </td>
 
               <td className="p-4">
                 <StatusBadge status={inv.status} />

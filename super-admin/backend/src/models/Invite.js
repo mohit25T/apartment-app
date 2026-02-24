@@ -7,13 +7,11 @@ const inviteSchema = new mongoose.Schema(
       required: true
     },
 
-    // 📱 Mobile stays mandatory
     mobile: {
       type: String,
       required: true
     },
 
-    // 📧 Email added (required for email OTP)
     email: {
       type: String,
       required: true,
@@ -23,7 +21,7 @@ const inviteSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["ADMIN", "RESIDENT", "GUARD"],
+      enum: ["ADMIN", "OWNER", "TENANT", "GUARD"],
       required: true
     },
 
@@ -39,11 +37,10 @@ const inviteSchema = new mongoose.Schema(
       required: true
     },
 
-    // 🏠 Flat number required only for RESIDENT
     flatNo: {
       type: String,
       required: function () {
-        return this.role === "RESIDENT";
+        return this.role === "OWNER" || this.role === "TENANT";
       }
     },
 
@@ -60,5 +57,26 @@ const inviteSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/* =====================================================
+   🔥 PRODUCTION INDEXES
+===================================================== */
+
+// 🔥 CRITICAL — for OTP verification
+inviteSchema.index({
+  mobile: 1,
+  role: 1,
+  status: 1,
+  expiresAt: 1
+});
+
+// For society admin management
+inviteSchema.index({ societyId: 1, createdAt: -1 });
+
+// For tracking invites sent by admin
+inviteSchema.index({ invitedBy: 1 });
+
+// For cleanup jobs (optional future cron)
+inviteSchema.index({ expiresAt: 1 });
 
 export default mongoose.model("Invite", inviteSchema);

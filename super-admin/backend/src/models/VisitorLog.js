@@ -5,8 +5,12 @@ const visitorLogSchema = new mongoose.Schema(
     societyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Society",
-      required: true,
-      index: true
+      required: true
+    },
+
+    visitorPhoto: {
+      type: String,
+      default: null
     },
 
     // 🔹 Visitor info
@@ -27,28 +31,25 @@ const visitorLogSchema = new mongoose.Schema(
       type: String
     },
 
-    // 🏠 Flat info (VERY IMPORTANT)
+    // 🏠 Flat info
     flatNo: {
       type: String,
-      required: true,
-      index: true
+      required: true
     },
 
-    // 👮 Guard who created entry
+    // 👮 Guard
     guardId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: false
+      ref: "User"
     },
 
-    // 🧍 Resident of that flat
+    // 🧍 Resident
     residentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
 
-    // ✅ Who approved/rejected
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
@@ -58,42 +59,28 @@ const visitorLogSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        "PENDING",     // waiting for resident
-        "APPROVED",    // approved by resident
-        "REJECTED",    // rejected by resident
-        "ENTERED",     // guard allowed entry
-        "EXITED"       // visitor left
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "ENTERED",
+        "EXITED"
       ],
-      default: "PENDING",
-      index: true
+      default: "PENDING"
     },
 
-    checkInAt: {
-      type: Date
-    },
-
-    checkOutAt: {
-      type: Date
-    },
+    checkInAt: Date,
+    checkOutAt: Date,
 
     entryType: {
       type: String,
       enum: ["VISITOR", "DELIVERY", "EMERGENCY", "GUEST"],
-      default: "VISITOR",
-      index: true
+      default: "VISITOR"
     },
 
-    deliveryCompany: {
-      type: String
-    },
+    deliveryCompany: String,
+    parcelType: String,
 
-    parcelType: {
-      type: String // Box / Food / Document
-    },
-
-    otp: {
-      type: String
-    },
+    otp: String,
 
     otpStatus: {
       type: String,
@@ -101,9 +88,7 @@ const visitorLogSchema = new mongoose.Schema(
       default: "ACTIVE"
     },
 
-    otpExpiresAt: {
-      type: Date
-    },
+    otpExpiresAt: Date,
 
     createdByResident: {
       type: mongoose.Schema.Types.ObjectId,
@@ -114,11 +99,29 @@ const visitorLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* 🔥 Indexes for performance */
+/* =====================================================
+   🔥 PRODUCTION OPTIMIZED INDEXES
+===================================================== */
+
+// For main society visitor listing (pagination)
 visitorLogSchema.index({ societyId: 1, createdAt: -1 });
-visitorLogSchema.index({ flatNo: 1 });
-visitorLogSchema.index({ guardId: 1 });
-visitorLogSchema.index({ residentId: 1 });
-visitorLogSchema.index({ status: 1 });
+
+// For status filtering inside society
+visitorLogSchema.index({ societyId: 1, status: 1 });
+
+// For resident-specific history
+visitorLogSchema.index({ residentId: 1, createdAt: -1 });
+
+// For guard-specific logs
+visitorLogSchema.index({ guardId: 1, createdAt: -1 });
+
+// For flat-based search
+visitorLogSchema.index({ societyId: 1, flatNo: 1 });
+
+// For entry type filtering
+visitorLogSchema.index({ societyId: 1, entryType: 1 });
+
+// For OTP lookup
+visitorLogSchema.index({ otp: 1, otpStatus: 1 });
 
 export default mongoose.model("VisitorLog", visitorLogSchema);

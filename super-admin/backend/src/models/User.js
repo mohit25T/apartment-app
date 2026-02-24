@@ -20,7 +20,13 @@ const userSchema = new mongoose.Schema(
 
     roles: {
       type: [String],
-      enum: ["SUPER_ADMIN", "ADMIN", "RESIDENT", "GUARD"],
+      enum: [
+        "SUPER_ADMIN",
+        "ADMIN",
+        "OWNER",
+        "TENANT",
+        "GUARD"
+      ],
       required: true
     },
 
@@ -40,25 +46,31 @@ const userSchema = new mongoose.Schema(
       default: "ACTIVE"
     },
 
+    profileImage: {
+      type: String,
+      default: null
+    },
+
+    isProfileComplete: {
+      type: Boolean,
+      default: false
+    },
+
     flatNo: {
       type: String,
       required: function () {
-        return this.roles?.includes("RESIDENT");
+        return (
+          this.roles?.includes("OWNER") ||
+          this.roles?.includes("TENANT")
+        );
       }
     },
 
-    /**
-     * 🔔 FCM TOKENS (NEW – MULTI DEVICE SUPPORT)
-     * Each login device adds its token here
-     */
     fcmTokens: {
       type: [String],
       default: []
     },
 
-    /**
-     * 🕒 Last time FCM token was updated
-     */
     fcmUpdatedAt: {
       type: Date,
       default: null
@@ -66,5 +78,27 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/* =====================================================
+   🔥 PRODUCTION OPTIMIZED INDEXES
+===================================================== */
+
+// For society-based queries
+userSchema.index({ societyId: 1 });
+
+// For role filtering inside society
+userSchema.index({ societyId: 1, roles: 1 });
+
+// For flat owner lookup
+userSchema.index({ societyId: 1, flatNo: 1 });
+
+// For invited user tracking
+userSchema.index({ invitedBy: 1 });
+
+// For status filtering
+userSchema.index({ societyId: 1, status: 1 });
+
+// For role-only filtering (admin dashboard)
+userSchema.index({ roles: 1 });
 
 export default mongoose.model("User", userSchema);

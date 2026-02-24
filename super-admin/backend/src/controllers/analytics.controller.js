@@ -4,20 +4,23 @@ import Invite from "../models/Invite.js";
 import VisitorLog from "../models/VisitorLog.js";
 
 /**
+ * ================================
  * GLOBAL OVERVIEW (Dashboard Cards)
+ * ================================
  */
-
 export const getOverviewAnalytics = async (req, res) => {
   const [
     totalSocieties,
     totalAdmins,
-    totalResidents,
+    totalOwners,
+    totalTenants,
     totalGuards,
     totalInvites
   ] = await Promise.all([
     Society.countDocuments({ status: "ACTIVE" }),
     User.countDocuments({ roles: "ADMIN" }),
-    User.countDocuments({ roles: "RESIDENT" }),
+    User.countDocuments({ roles: "OWNER" }),
+    User.countDocuments({ roles: "TENANT" }),
     User.countDocuments({ roles: "GUARD" }),
     Invite.countDocuments()
   ]);
@@ -25,14 +28,18 @@ export const getOverviewAnalytics = async (req, res) => {
   res.json({
     societies: totalSocieties,
     admins: totalAdmins,
-    residents: totalResidents,
+    owners: totalOwners,
+    tenants: totalTenants,
     guards: totalGuards,
     invites: totalInvites
   });
 };
 
+
 /**
+ * ================================
  * SOCIETY ANALYTICS
+ * ================================
  */
 export const getSocietyAnalytics = async (req, res) => {
   const { societyId } = req.params;
@@ -42,9 +49,10 @@ export const getSocietyAnalytics = async (req, res) => {
     return res.status(404).json({ message: "Society not found" });
   }
 
-  const [admins, residents, guards, visitors] = await Promise.all([
+  const [admins, owners, tenants, guards, visitors] = await Promise.all([
     User.countDocuments({ societyId, roles: "ADMIN" }),
-    User.countDocuments({ societyId, roles: "RESIDENT" }),
+    User.countDocuments({ societyId, roles: "OWNER" }),
+    User.countDocuments({ societyId, roles: "TENANT" }),
     User.countDocuments({ societyId, roles: "GUARD" }),
     VisitorLog.countDocuments({ societyId })
   ]);
@@ -53,14 +61,18 @@ export const getSocietyAnalytics = async (req, res) => {
     societyId,
     societyName: society.name,
     admins,
-    residents,
+    owners,
+    tenants,
     guards,
     visitors
   });
 };
 
+
 /**
+ * ================================
  * ADMIN PERFORMANCE ANALYTICS
+ * ================================
  */
 export const getAdminAnalytics = async (req, res) => {
   const { adminId } = req.params;
@@ -70,15 +82,17 @@ export const getAdminAnalytics = async (req, res) => {
     return res.status(404).json({ message: "Admin not found" });
   }
 
-  const [residentsAdded, guardsAdded] = await Promise.all([
-    User.countDocuments({ invitedBy: adminId, roles: "RESIDENT" }),
+  const [ownersAdded, tenantsAdded, guardsAdded] = await Promise.all([
+    User.countDocuments({ invitedBy: adminId, roles: "OWNER" }),
+    User.countDocuments({ invitedBy: adminId, roles: "TENANT" }),
     User.countDocuments({ invitedBy: adminId, roles: "GUARD" })
   ]);
 
   res.json({
     adminId,
     adminName: admin.name,
-    residentsAdded,
+    ownersAdded,
+    tenantsAdded,
     guardsAdded
   });
 };

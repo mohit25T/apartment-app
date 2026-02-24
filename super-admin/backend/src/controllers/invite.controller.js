@@ -7,12 +7,10 @@ const INVITE_EXPIRY_HOURS = 24;
 
 /**
  * CREATE ADMIN INVITE
- * ADMIN = SECRETARY = RESIDENT
  */
 export const inviteAdmin = async (req, res) => {
   const { name, mobile, email, societyId, flatNo } = req.body;
 
-  // ✅ email added
   if (!name || !mobile || !email || !societyId || !flatNo) {
     return res.status(400).json({
       message: "Name, mobile, email, societyId and flat number are required"
@@ -24,7 +22,6 @@ export const inviteAdmin = async (req, res) => {
     return res.status(404).json({ message: "Society not found" });
   }
 
-  // ❌ flat already assigned
   const flatExists = await Invite.findOne({
     societyId,
     flatNo,
@@ -55,7 +52,7 @@ export const inviteAdmin = async (req, res) => {
 
   if (invite) {
     invite.name = name;
-    invite.email = email;            // ✅ added
+    invite.email = email;
     invite.flatNo = flatNo;
     invite.status = "PENDING";
     invite.expiresAt = expiresAt;
@@ -80,7 +77,7 @@ export const inviteAdmin = async (req, res) => {
   invite = await Invite.create({
     name,
     mobile,
-    email,               // ✅ added
+    email,
     flatNo,
     role: "ADMIN",
     societyId,
@@ -170,10 +167,20 @@ export const cancelInvite = async (req, res) => {
 
 /**
  * INVITE RESIDENT
+ * (Now supports OWNER or TENANT)
+ * API name kept same to avoid breaking frontend
  */
 export const inviteResident = async (req, res) => {
   try {
-    const { name, mobile, email, flatNo } = req.body;
+    const { name, mobile, email, flatNo, role } = req.body;
+
+    const userRole = role || "OWNER";
+
+    if (!["OWNER", "TENANT"].includes(userRole)) {
+      return res.status(400).json({
+        message: "Role must be OWNER or TENANT"
+      });
+    }
 
     if (!name || !mobile || !email || !flatNo) {
       return res.status(400).json({
@@ -191,6 +198,7 @@ export const inviteResident = async (req, res) => {
     const flatExists = await Invite.findOne({
       societyId: admin.societyId,
       flatNo,
+      role: { $in: ["OWNER", "TENANT"] },
       status: { $in: ["PENDING", "USED"] }
     });
 
@@ -206,19 +214,19 @@ export const inviteResident = async (req, res) => {
 
     let invite = await Invite.findOne({
       mobile,
-      role: "RESIDENT",
+      role: userRole,
       societyId: admin.societyId
     });
 
     if (invite?.status === "USED") {
       return res.status(409).json({
-        message: "Resident already onboarded"
+        message: `${userRole} already onboarded`
       });
     }
 
     if (invite) {
       invite.name = name;
-      invite.email = email;          // ✅ added
+      invite.email = email;
       invite.flatNo = flatNo;
       invite.status = "PENDING";
       invite.expiresAt = expiresAt;
@@ -228,9 +236,9 @@ export const inviteResident = async (req, res) => {
       invite = await Invite.create({
         name,
         mobile,
-        email,                        // ✅ added
+        email,
         flatNo,
-        role: "RESIDENT",
+        role: userRole,
         societyId: admin.societyId,
         invitedBy: admin._id,
         expiresAt
@@ -243,18 +251,18 @@ export const inviteResident = async (req, res) => {
       targetType: "INVITE",
       targetId: invite._id,
       societyId: admin.societyId,
-      description: `Resident invited: ${name} (${mobile}) | Flat ${flatNo}`
+      description: `${userRole} invited: ${name} (${mobile}) | Flat ${flatNo}`
     });
 
     res.json({
-      message: "Resident invite sent successfully",
+      message: `${userRole} invite sent successfully`,
       invite
     });
 
   } catch (err) {
     console.error("INVITE RESIDENT ERROR:", err);
     res.status(500).json({
-      message: "Failed to invite resident"
+      message: "Failed to invite user"
     });
   }
 };
@@ -297,7 +305,7 @@ export const inviteGuard = async (req, res) => {
 
     if (invite) {
       invite.name = name;
-      invite.email = email;          // ✅ added
+      invite.email = email;
       invite.status = "PENDING";
       invite.expiresAt = expiresAt;
       invite.invitedBy = admin._id;
@@ -306,7 +314,7 @@ export const inviteGuard = async (req, res) => {
       invite = await Invite.create({
         name,
         mobile,
-        email,                        // ✅ added
+        email,
         role: "GUARD",
         societyId: admin.societyId,
         invitedBy: admin._id,
