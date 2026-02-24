@@ -28,7 +28,10 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     });
   }
 
-  bool get canSwitch => roles.contains("ADMIN") && roles.contains("RESIDENT");
+  /// ✅ UPDATED LOGIC
+  bool get canSwitch =>
+      roles.contains("ADMIN") &&
+      (roles.contains("OWNER") || roles.contains("TENANT"));
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +86,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               children: [
                 if (canSwitch) _buildSwitchModeCard(),
                 const SizedBox(height: 20),
-
-                // ================= Notifications =================
                 const Text(
                   "Notifications",
                   style: TextStyle(
@@ -94,7 +95,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 _buildNotificationCard(
                   "Pending Visitor Approvals",
                   Icons.notifications_active_rounded,
@@ -102,10 +102,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   "/resident-visitors",
                   "Action Required",
                 ),
-
                 const SizedBox(height: 24),
-
-                // ================= My Features =================
                 const Text(
                   "My Features",
                   style: TextStyle(
@@ -115,7 +112,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -124,14 +120,12 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
-                    // 🔹 NEW MAINTENANCE FEATURE
                     _buildFeatureCard(
                       "Maintenance\nBills",
                       Icons.receipt_long_rounded,
                       Colors.deepPurple,
                       "/maintenance",
                     ),
-
                     _buildFeatureCard(
                       "Pre-Approve\nGuest",
                       Icons.qr_code_rounded,

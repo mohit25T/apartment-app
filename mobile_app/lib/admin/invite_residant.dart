@@ -18,14 +18,16 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
 
   bool loading = false;
 
+  String selectedRole = "OWNER"; // ✅ Default role
+
   Future<void> inviteResident() async {
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
         mobileController.text.length != 10 ||
         flatController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Enter name, email, mobile number and flat number"),
+        const SnackBar(
+          content: Text("Enter name, email, mobile number and flat number"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -41,12 +43,13 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
         "email": emailController.text.trim().toLowerCase(),
         "mobile": mobileController.text.trim(),
         "flatNo": flatController.text.trim(),
+        "role": selectedRole, // ✅ NEW
       },
     );
 
     setState(() => loading = false);
 
-    if (response["message"] != null) {
+    if (response != null && response["message"] != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response["message"]),
@@ -58,10 +61,11 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
       emailController.clear();
       mobileController.clear();
       flatController.clear();
+      setState(() => selectedRole = "OWNER");
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Something went wrong"),
+        const SnackBar(
+          content: Text("Something went wrong"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -93,7 +97,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "New Resident",
+              "Invite Flat Member",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -102,23 +106,54 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Send an invite to a new resident used to join the society.",
+              "Send an invite to an Owner or Tenant.",
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
 
-            _buildTextField(nameController, "Resident Name", Icons.person_outline),
+            _buildTextField(nameController, "Full Name", Icons.person_outline),
             const SizedBox(height: 16),
-            _buildTextField(emailController, "Email Address", Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 16),
-            _buildTextField(flatController, "Flat Number (e.g. A-203)", Icons.home_outlined),
-            const SizedBox(height: 16),
+
             _buildTextField(
-              mobileController, 
-              "Mobile Number", 
-              Icons.phone_android_outlined, 
-              keyboardType: TextInputType.phone, 
-              maxLength: 10
+                emailController, "Email Address", Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress),
+            const SizedBox(height: 16),
+
+            _buildTextField(flatController, "Flat Number (e.g. A-203)",
+                Icons.home_outlined),
+            const SizedBox(height: 16),
+
+            _buildTextField(
+              mobileController,
+              "Mobile Number",
+              Icons.phone_android_outlined,
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+            ),
+            const SizedBox(height: 16),
+
+            // ✅ NEW ROLE DROPDOWN
+            DropdownButtonFormField<String>(
+              value: selectedRole,
+              decoration: const InputDecoration(
+                labelText: "Select Role",
+                prefixIcon: Icon(Icons.badge_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: "OWNER",
+                  child: Text("Owner"),
+                ),
+                DropdownMenuItem(
+                  value: "TENANT",
+                  child: Text("Tenant"),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  selectedRole = value!;
+                });
+              },
             ),
 
             const SizedBox(height: 40),
@@ -140,7 +175,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
                         child: WalkingLoader(size: 40, color: Colors.white),
                       )
                     : const Text(
-                        "Invite Resident",
+                        "Send Invite",
                         style: TextStyle(fontSize: 16),
                       ),
               ),

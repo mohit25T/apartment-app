@@ -25,15 +25,12 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   }
 
   Future<void> _startAnimation() async {
-    // 1. Fade In Logo
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _logoOpacity = 1.0);
 
-    // 2. Fade In App Name
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) setState(() => _appOpacity = 1.0);
 
-    // 3. Check Auth & Get User Name
     await Future.delayed(const Duration(milliseconds: 1000));
     if (mounted) await _checkAuth();
   }
@@ -44,14 +41,15 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     final String? role = prefs.getString('role');
 
     if (isLoggedIn && role != null) {
-      // 4. Get User Name
       String? name = await UserStorage.getName();
-      
-      // ⚠️ IF NAME MISSING (Existing sessions), FETCH FROM API
+
+      // ⚠️ If name missing, fetch profile
       if (name == null || name.isEmpty) {
         try {
           final response = await ApiService.get("/users/profile");
-          if (response != null && response["success"] == true && response["user"] != null) {
+          if (response != null &&
+              response["success"] == true &&
+              response["user"] != null) {
             final user = response["user"];
             name = user["name"];
             await UserStorage.saveUser(
@@ -64,7 +62,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
           debugPrint("Authorized check profile fetch failed: $e");
         }
       }
-      
+
       if (name != null && name.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -72,32 +70,30 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
             _showUser = true;
           });
         }
-        
-        // 5. Fade In User Name
+
         await Future.delayed(const Duration(milliseconds: 200));
         if (mounted) setState(() => _userOpacity = 1.0);
-        
-        // 6. Wait and Navigate
+
         await Future.delayed(const Duration(milliseconds: 1500));
         if (mounted) _navigate(role);
       } else {
-        // No name found, just navigate
         if (mounted) _navigate(role);
       }
     } else {
-      // Not logged in -> Login Screen
-      // Wait a bit to let the logo be seen
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
+  // ✅ UPDATED FOR OWNER / TENANT
   void _navigate(String role) {
-    if (role == 'admin') {
+    final normalizedRole = role.toUpperCase();
+
+    if (normalizedRole == 'ADMIN') {
       Navigator.pushReplacementNamed(context, '/admin');
-    } else if (role == 'resident') {
+    } else if (normalizedRole == 'OWNER' || normalizedRole == 'TENANT') {
       Navigator.pushReplacementNamed(context, '/resident');
-    } else if (role == 'guard') {
+    } else if (normalizedRole == 'GUARD') {
       Navigator.pushReplacementNamed(context, '/guard');
     } else {
       Navigator.pushReplacementNamed(context, '/login');
@@ -112,7 +108,6 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo
             AnimatedOpacity(
               duration: const Duration(seconds: 1),
               opacity: _logoOpacity,
@@ -130,7 +125,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
                     ),
                   ],
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.apartment_rounded,
                   size: 80,
                   color: AppColors.primary,
@@ -138,15 +133,13 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // App Name
             AnimatedOpacity(
               duration: const Duration(seconds: 1),
               opacity: _appOpacity,
               curve: Curves.easeOut,
               child: Column(
                 children: [
-                   Text(
+                  Text(
                     "Building Management",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -163,10 +156,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 60),
-
-            // User Name
             if (_showUser)
               AnimatedOpacity(
                 duration: const Duration(seconds: 1),

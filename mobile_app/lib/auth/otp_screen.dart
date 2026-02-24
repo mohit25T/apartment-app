@@ -43,7 +43,7 @@ class _OtpScreenState extends State<OtpScreen> {
       {
         "mobile": mobile,
         "otp": otpController.text,
-        "fcmToken": fcmToken, // ✅ THIS WAS MISSING
+        "fcmToken": fcmToken,
       },
     );
 
@@ -59,36 +59,34 @@ class _OtpScreenState extends State<OtpScreen> {
       // 2️⃣ SAVE USER ROLES
       // =================================
       final List roles = response["roles"] ?? [];
-      await RoleStorage.saveRoles(List<String>.from(roles));
+      final List<String> normalizedRoles =
+          roles.map((r) => r.toString().toUpperCase()).toList();
+
+      await RoleStorage.saveRoles(normalizedRoles);
 
       // =================================
       // 3️⃣ SAVE LOGIN STATE
       // =================================
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
-      await prefs.setBool('admin_mode', roles.contains("ADMIN"));
+      await prefs.setBool('admin_mode', normalizedRoles.contains("ADMIN"));
 
-      if (roles.contains("ADMIN")) {
-        await prefs.setString('role', 'admin');
-      } else if (roles.contains("GUARD")) {
-        await prefs.setString('role', 'guard');
+      // ✅ SAFE ROLE DECISION
+      if (normalizedRoles.contains("ADMIN")) {
+        await prefs.setString('role', 'ADMIN');
+      } else if (normalizedRoles.contains("GUARD")) {
+        await prefs.setString('role', 'GUARD');
+      } else if (normalizedRoles.contains("OWNER")) {
+        await prefs.setString('role', 'OWNER');
+      } else if (normalizedRoles.contains("TENANT")) {
+        await prefs.setString('role', 'TENANT');
       } else {
-        await prefs.setString('role', 'resident');
+        await prefs.setString('role', 'OWNER'); // fallback
       }
 
       // =================================
-      // 🔔 4️⃣ INIT FCM (IMPORTANT)
+      // 🔔 4️⃣ INIT FCM
       // =================================
-      // This:
-      // - requests permission
-      // - generates FCM token
-      // - sends token to backend
-      // - listens for token refresh
-      //
-      // Works for:
-      // ✔ flutter run
-      // ✔ installed APK
-      // ✔ production
       await NotificationService.initFcm();
 
       // =================================
@@ -105,11 +103,12 @@ class _OtpScreenState extends State<OtpScreen> {
       // =================================
       // 5️⃣ NAVIGATE BASED ON ROLE
       // =================================
-      if (roles.contains("ADMIN")) {
+      if (normalizedRoles.contains("ADMIN")) {
         Navigator.pushReplacementNamed(context, "/admin");
-      } else if (roles.contains("GUARD")) {
+      } else if (normalizedRoles.contains("GUARD")) {
         Navigator.pushReplacementNamed(context, "/guard");
       } else {
+        // OWNER + TENANT both go to resident dashboard
         Navigator.pushReplacementNamed(context, "/resident");
       }
     } else {
@@ -163,28 +162,24 @@ class _OtpScreenState extends State<OtpScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              
-              // OTP Input Field
               TextField(
                 controller: otpController,
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.bold, 
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                   letterSpacing: 8,
                 ),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   counterText: "",
                   hintText: "______",
-                  hintStyle: const TextStyle(letterSpacing: 8, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  hintStyle: TextStyle(letterSpacing: 8, color: Colors.grey),
+                  contentPadding: EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
               const SizedBox(height: 32),
-              
-              // Verify Button
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
@@ -202,17 +197,6 @@ class _OtpScreenState extends State<OtpScreen> {
                         )
                       : const Text("Verify & Proceed"),
                 ),
-              ),
-              
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  // Logic to resend OTP
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Resend functionality not implemented yet")),
-                  );
-                },
-                child: const Text("Resend OTP"),
               ),
             ],
           ),

@@ -37,8 +37,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     try {
       final response = await ApiService.get("/users/by-society");
 
-      print("API RESPONSE: $response");
-
       if (response != null && response is List) {
         setState(() {
           users = response;
@@ -52,8 +50,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
         );
       }
     } catch (e) {
-      print("ERROR: $e");
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Something went wrong"),
@@ -122,17 +118,18 @@ class _UsersListScreenState extends State<UsersListScreen> {
     }
   }
 
+  // ✅ UPDATED ROLE CHECK
   bool shouldShowBlockButton(Map<String, dynamic> user) {
     final List roles = user["roles"] ?? [];
 
-    final bool isAdminResident =
-        roles.contains("ADMIN") && roles.contains("RESIDENT");
+    final bool isAdminOwnerOrTenant = roles.contains("ADMIN") &&
+        (roles.contains("OWNER") || roles.contains("TENANT"));
 
     final bool isSuperAdmin = roles.contains("SUPER_ADMIN");
 
     final bool isSelf = user["_id"] == currentUserId;
 
-    if (isAdminResident || isSuperAdmin || isSelf) {
+    if (isAdminOwnerOrTenant || isSuperAdmin || isSelf) {
       return false;
     }
 

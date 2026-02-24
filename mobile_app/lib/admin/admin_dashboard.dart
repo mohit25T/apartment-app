@@ -28,7 +28,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
-  bool get canSwitch => roles.contains("ADMIN") && roles.contains("RESIDENT");
+  // ✅ UPDATED: ADMIN + (OWNER or TENANT)
+  bool get canSwitch =>
+      roles.contains("ADMIN") &&
+      (roles.contains("OWNER") || roles.contains("TENANT"));
 
   @override
   Widget build(BuildContext context) {
@@ -100,43 +103,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
-                    // 🔹 NEW: Generate Maintenance
                     _buildActionCard(
                       "Generate\nMaintenance",
                       Icons.receipt_long_rounded,
                       Colors.deepPurple,
                       "/generate-maintenance",
                     ),
-
-                    // 🔹 NEW: View All Bills
                     _buildActionCard(
                       "All\nMaintenance",
                       Icons.list_alt_rounded,
                       Colors.teal,
                       "/admin-maintenance-list",
                     ),
-
                     _buildActionCard(
                       "Invite\nResident",
                       Icons.group_add_rounded,
                       Colors.blueAccent,
                       "/invite-resident",
                     ),
-
                     _buildActionCard(
                       "Manage\nUsers",
                       Icons.groups_rounded,
                       Colors.orangeAccent,
                       "/society-users",
                     ),
-
                     _buildActionCard(
                       "Invite\nGuard",
                       Icons.security_rounded,
                       Colors.green,
                       "/invite-guard",
                     ),
-
                     _buildActionCard(
                       "Visitor\nLogs",
                       Icons.history_edu_rounded,
@@ -194,14 +190,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: const Icon(Icons.home_rounded, color: Colors.white),
         ),
         title: const Text(
-          "Switch to Resident",
+          "Switch to Personal Mode",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         subtitle: const Text(
-          "Access your personal dashboard",
+          "Access your flat dashboard",
           style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
         trailing: const Icon(Icons.arrow_forward_ios_rounded,
