@@ -1,9 +1,39 @@
 import 'package:flutter/material.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
+import '../core/api/api_service.dart';
 
-class GuardDashboard extends StatelessWidget {
+class GuardDashboard extends StatefulWidget {
   const GuardDashboard({super.key});
+
+  @override
+  State<GuardDashboard> createState() => _GuardDashboardState();
+}
+
+class _GuardDashboardState extends State<GuardDashboard> {
+  String? profileImage;
+  bool loadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    final response = await ApiService.get("/users/me");
+
+    if (response != null && response["user"] != null) {
+      setState(() {
+        profileImage = response["user"]["profileImage"];
+        loadingProfile = false;
+      });
+    } else {
+      setState(() {
+        loadingProfile = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +41,7 @@ class GuardDashboard extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-       backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         title: Row(
           children: [
@@ -29,23 +59,48 @@ class GuardDashboard extends StatelessWidget {
                 ),
                 Text(
                   "Guard Dashboard",
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
                 ),
               ],
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ).then((_) => fetchProfile()); // refresh after returning
+              },
+              child: loadingProfile
+                  ? const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage: profileImage != null
+                          ? NetworkImage(profileImage!)
+                          : null,
+                      child: profileImage == null
+                          ? const Icon(
+                              Icons.person,
+                              color: AppColors.primary,
+                            )
+                          : null,
+                    ),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -168,7 +223,8 @@ class GuardDashboard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 20),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.grey, size: 20),
           ],
         ),
       ),

@@ -33,10 +33,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
     setState(() => loading = true);
 
-    // 🔔 GET FCM TOKEN BEFORE LOGIN
     final String? fcmToken = await NotificationService.getFcmTokenOnly();
-
-    debugPrint("📱 FCM token before login: $fcmToken");
 
     final response = await ApiService.post(
       "/auth/verify-user-otp",
@@ -47,16 +44,14 @@ class _OtpScreenState extends State<OtpScreen> {
       },
     );
 
-    setState(() => loading = false);
-
     if (response != null && response["token"] != null) {
       // =================================
-      // 1️⃣ SAVE AUTH TOKEN
+      // 1️⃣ SAVE TOKEN
       // =================================
       await TokenStorage.saveToken(response["token"]);
 
       // =================================
-      // 2️⃣ SAVE USER ROLES
+      // 2️⃣ SAVE ROLES
       // =================================
       final List roles = response["roles"] ?? [];
       final List<String> normalizedRoles =
@@ -71,7 +66,6 @@ class _OtpScreenState extends State<OtpScreen> {
       await prefs.setBool('isLoggedIn', true);
       await prefs.setBool('admin_mode', normalizedRoles.contains("ADMIN"));
 
-      // ✅ SAFE ROLE DECISION
       if (normalizedRoles.contains("ADMIN")) {
         await prefs.setString('role', 'ADMIN');
       } else if (normalizedRoles.contains("GUARD")) {
@@ -81,37 +75,58 @@ class _OtpScreenState extends State<OtpScreen> {
       } else if (normalizedRoles.contains("TENANT")) {
         await prefs.setString('role', 'TENANT');
       } else {
-        await prefs.setString('role', 'OWNER'); // fallback
+        await prefs.setString('role', 'OWNER');
       }
 
       // =================================
-      // 🔔 4️⃣ INIT FCM
+      // 🔔 INIT FCM COMPLETELY
       // =================================
       await NotificationService.initFcm();
 
       // =================================
-      // 💾 SAVE USER DETAILS
+      // 4️⃣ FETCH PROFILE TO CHECK PHOTO
       // =================================
-      if (response["user"] != null) {
+      final profileResponse = await ApiService.get("/users/me");
+
+      bool requiresProfilePhoto = false;
+
+      if (profileResponse != null &&
+          profileResponse["requiresProfilePhoto"] != null) {
+        requiresProfilePhoto = profileResponse["requiresProfilePhoto"];
+      }
+
+      // Save user basic info
+      if (profileResponse != null && profileResponse["user"] != null) {
         await UserStorage.saveUser(
-          name: response["user"]["name"],
-          email: response["user"]["email"],
-          mobile: response["user"]["mobile"],
+          name: profileResponse["user"]["name"],
+          email: profileResponse["user"]["email"],
+          mobile: profileResponse["user"]["mobile"],
         );
       }
 
+      setState(() => loading = false);
+
       // =================================
-      // 5️⃣ NAVIGATE BASED ON ROLE
+      // 5️⃣ IF PROFILE PHOTO REQUIRED
+      // =================================
+      if (requiresProfilePhoto == true) {
+        Navigator.pushReplacementNamed(context, "/upload-profile-photo");
+        return;
+      }
+
+      // =================================
+      // 6️⃣ NORMAL NAVIGATION
       // =================================
       if (normalizedRoles.contains("ADMIN")) {
         Navigator.pushReplacementNamed(context, "/admin");
       } else if (normalizedRoles.contains("GUARD")) {
         Navigator.pushReplacementNamed(context, "/guard");
       } else {
-        // OWNER + TENANT both go to resident dashboard
         Navigator.pushReplacementNamed(context, "/resident");
       }
     } else {
+      setState(() => loading = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response?["message"] ?? "OTP verification failed"),
@@ -158,7 +173,6 @@ class _OtpScreenState extends State<OtpScreen> {
               const SizedBox(height: 8),
               Text(
                 "Enter the OTP sent to +91 $mobile",
-                style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -176,7 +190,6 @@ class _OtpScreenState extends State<OtpScreen> {
                   counterText: "",
                   hintText: "______",
                   hintStyle: TextStyle(letterSpacing: 8, color: Colors.grey),
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
               const SizedBox(height: 32),
@@ -184,11 +197,6 @@ class _OtpScreenState extends State<OtpScreen> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: loading ? null : () => verifyOtp(mobile),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                   child: loading
                       ? const SizedBox(
                           width: 40,

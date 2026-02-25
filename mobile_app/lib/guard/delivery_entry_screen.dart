@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -18,6 +20,9 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
   String? selectedCompany;
   String? parcelType;
+
+  File? deliveryImage;
+  final ImagePicker _picker = ImagePicker();
 
   final TextEditingController mobileController = TextEditingController();
 
@@ -62,6 +67,19 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   }
 
   /* ============================
+        PICK IMAGE
+  ============================ */
+  Future<void> pickImage() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.camera);
+
+    if (picked != null) {
+      setState(() {
+        deliveryImage = File(picked.path);
+      });
+    }
+  }
+
+  /* ============================
         CREATE DELIVERY ENTRY
   ============================ */
   Future<void> createDelivery() async {
@@ -79,9 +97,16 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
       return;
     }
 
+    if (deliveryImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Capture delivery person photo")),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
-    final response = await ApiService.post(
+    final response = await ApiService.multipart(
       "/visitors/create",
       {
         "personName": selectedCompany,
@@ -91,14 +116,16 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
         "deliveryCompany": selectedCompany,
         "parcelType": parcelType,
       },
+      file: deliveryImage,
+      fileFieldName: "visitorPhoto",
     );
 
     setState(() => loading = false);
 
-    if (response != null && response["message"] != null) {
+    if (response != null && response["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response["message"]),
+        const SnackBar(
+          content: Text("Delivery entry created successfully"),
           backgroundColor: Colors.green,
         ),
       );
@@ -106,9 +133,17 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Delivery entry failed")),
+        SnackBar(
+          content: Text(response?["message"] ?? "Delivery entry failed"),
+        ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    mobileController.dispose();
+    super.dispose();
   }
 
   @override
@@ -136,6 +171,41 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  /// IMAGE CAPTURE
+                  GestureDetector(
+                    onTap: pickImage,
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade200,
+                        border: Border.all(color: Colors.grey.shade400),
+                      ),
+                      child: deliveryImage == null
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.camera_alt,
+                                      size: 40, color: AppColors.primary),
+                                  SizedBox(height: 8),
+                                  Text("Capture Delivery Photo"),
+                                ],
+                              ),
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                deliveryImage!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                    ),
+                  ),
+
                   const SizedBox(height: 24),
 
                   /// FLAT SELECT
@@ -174,8 +244,10 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                     maxLength: 10,
                     decoration: InputDecoration(
                       labelText: "Delivery Person Mobile",
-                      prefixIcon: const Icon(Icons.phone_android, color: AppColors.primary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.phone_android,
+                          color: AppColors.primary),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                       counterText: "",
@@ -188,8 +260,10 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Parcel Type (optional)",
-                      prefixIcon: const Icon(Icons.inventory_2, color: AppColors.primary),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.inventory_2,
+                          color: AppColors.primary),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -207,17 +281,20 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                       onPressed: loading ? null : createDelivery,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: loading
                           ? const SizedBox(
                               width: 24,
                               height: 24,
-                              child: WalkingLoader(size: 24, color: Colors.white),
+                              child:
+                                  WalkingLoader(size: 24, color: Colors.white),
                             )
                           : const Text(
                               "Create Delivery Entry",
-                              style: TextStyle(fontSize: 16, color: Colors.white),
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
                             ),
                     ),
                   )

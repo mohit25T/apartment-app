@@ -50,16 +50,11 @@ class _ResidentVisitorHistoryScreenState
         "/users/resident-visitor-history?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
-      setState(() {
-        visitors = response["visitors"] ?? [];
-        hasMore = response["hasMore"] ?? false;
-        loading = false;
-      });
-    } else {
-      setState(() {
-        loading = false;
-      });
+      visitors = response["visitors"] ?? [];
+      hasMore = response["hasMore"] ?? false;
     }
+
+    setState(() => loading = false);
   }
 
   Future<void> loadMoreVisitors() async {
@@ -73,14 +68,26 @@ class _ResidentVisitorHistoryScreenState
         "/users/resident-visitor-history?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
-      setState(() {
-        visitors.addAll(response["visitors"] ?? []);
-        hasMore = response["hasMore"] ?? false;
-        isLoadingMore = false;
-      });
-    } else {
-      setState(() => isLoadingMore = false);
+      visitors.addAll(response["visitors"] ?? []);
+      hasMore = response["hasMore"] ?? false;
     }
+
+    setState(() => isLoadingMore = false);
+  }
+
+  void showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        child: InteractiveViewer(
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -121,12 +128,16 @@ class _ResidentVisitorHistoryScreenState
 
                     final v = visitors[index];
                     final status = v["status"] ?? "N/A";
+                    final photoUrl = v["photo"];
+
                     Color statusColor = Colors.grey;
-                    if (status == "APPROVED")
+                    if (status == "APPROVED") {
                       statusColor = Colors.green;
-                    else if (status == "REJECTED")
+                    } else if (status == "REJECTED") {
                       statusColor = Colors.red;
-                    else if (status == "PENDING") statusColor = Colors.orange;
+                    } else if (status == "PENDING") {
+                      statusColor = Colors.orange;
+                    }
 
                     return Container(
                       decoration: BoxDecoration(
@@ -142,14 +153,39 @@ class _ResidentVisitorHistoryScreenState
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            shape: BoxShape.circle,
+                        leading: GestureDetector(
+                          onTap: photoUrl != null
+                              ? () => showFullImage(photoUrl)
+                              : null,
+                          child: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: AppColors.primary.withOpacity(0.1),
+                            child: photoUrl != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      photoUrl,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        );
+                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(Icons.person),
+                                    ),
+                                  )
+                                : const Icon(Icons.person,
+                                    color: AppColors.primary),
                           ),
-                          child: const Icon(Icons.person,
-                              color: AppColors.primary),
                         ),
                         title: Text(
                           v["personName"] ?? "Visitor",
@@ -205,9 +241,11 @@ class _ResidentVisitorHistoryScreenState
       children: [
         Icon(icon, size: 14, color: Colors.grey.shade600),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
         ),
       ],
     );

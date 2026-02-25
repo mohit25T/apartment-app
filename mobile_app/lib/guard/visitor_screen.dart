@@ -95,6 +95,21 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
     super.dispose();
   }
 
+  Color _statusColor(String? status) {
+    switch (status) {
+      case "APPROVED":
+        return Colors.blue;
+      case "ENTERED":
+        return Colors.green;
+      case "EXITED":
+        return Colors.grey;
+      case "REJECTED":
+        return AppColors.error;
+      default:
+        return Colors.black54;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,9 +122,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              loadVisitors();
-            },
+            onPressed: loadVisitors,
           ),
         ],
       ),
@@ -133,6 +146,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
 
                     final v = visitors[index];
                     final status = v["status"];
+                    final photoUrl = v["photo"]; // 👈 IMAGE FIELD
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -152,10 +166,18 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                           ListTile(
                             contentPadding: const EdgeInsets.all(16),
                             leading: CircleAvatar(
+                              radius: 28,
                               backgroundColor:
-                                  AppColors.secondary.withOpacity(0.1),
-                              child: const Icon(Icons.person,
-                                  color: AppColors.secondary),
+                                  _statusColor(status).withOpacity(0.1),
+                              backgroundImage: photoUrl != null
+                                  ? NetworkImage(photoUrl)
+                                  : null,
+                              child: photoUrl == null
+                                  ? Icon(
+                                      Icons.person,
+                                      color: _statusColor(status),
+                                    )
+                                  : null,
                             ),
                             title: Text(
                               v["personName"] ?? "Unknown",
@@ -182,13 +204,14 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
+                                    color:
+                                        _statusColor(status).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
                                     status ?? "UNKNOWN",
                                     style: TextStyle(
-                                      color: Colors.grey.shade700,
+                                      color: _statusColor(status),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -214,7 +237,6 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
           backgroundColor: Colors.green,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         ),
         child: const Text("MARK ENTER", style: TextStyle(color: Colors.white)),
       );
@@ -225,7 +247,6 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
           backgroundColor: AppColors.error,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         ),
         child: const Text("MARK EXIT", style: TextStyle(color: Colors.white)),
       );

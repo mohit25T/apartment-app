@@ -11,9 +11,10 @@ class ResidentPendingVisitorsScreen extends StatefulWidget {
       _ResidentPendingVisitorsScreenState();
 }
 
-class _ResidentPendingVisitorsScreenState     
+class _ResidentPendingVisitorsScreenState
     extends State<ResidentPendingVisitorsScreen> {
   bool loading = true;
+  bool actionLoading = false;
   List visitors = [];
 
   @override
@@ -29,37 +30,33 @@ class _ResidentPendingVisitorsScreenState
     setState(() => loading = true);
 
     try {
-      final response = await ApiService.get(
-        "/visitors?status=PENDING",
-      );
+      final response = await ApiService.get("/visitors?status=PENDING");
 
       if (response != null &&
           response["success"] == true &&
           response["data"] != null) {
         setState(() {
           visitors = response["data"];
-          loading = false;
         });
       } else {
-        setState(() {
-          visitors = [];
-          loading = false;
-        });
+        visitors = [];
       }
     } catch (e) {
-      setState(() => loading = false);
       debugPrint("FETCH VISITORS ERROR: $e");
     }
+
+    setState(() => loading = false);
   }
 
   /* ============================
         APPROVE VISITOR
   ============================ */
   Future<void> approveVisitor(String id) async {
-    final res = await ApiService.put(
-      "/visitors/approve/$id",
-      {},
-    );
+    if (actionLoading) return;
+
+    setState(() => actionLoading = true);
+
+    final res = await ApiService.put("/visitors/approve/$id", {});
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -68,17 +65,19 @@ class _ResidentPendingVisitorsScreenState
       ),
     );
 
-    fetchVisitors();
+    await fetchVisitors();
+    setState(() => actionLoading = false);
   }
 
   /* ============================
         REJECT VISITOR
   ============================ */
   Future<void> rejectVisitor(String id) async {
-    final res = await ApiService.put(
-      "/visitors/reject/$id",
-      {},
-    );
+    if (actionLoading) return;
+
+    setState(() => actionLoading = true);
+
+    final res = await ApiService.put("/visitors/reject/$id", {});
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,7 +86,8 @@ class _ResidentPendingVisitorsScreenState
       ),
     );
 
-    fetchVisitors();
+    await fetchVisitors();
+    setState(() => actionLoading = false);
   }
 
   @override
@@ -126,6 +126,7 @@ class _ResidentPendingVisitorsScreenState
                   itemCount: visitors.length,
                   itemBuilder: (context, index) {
                     final v = visitors[index];
+                    final photoUrl = v["photo"]; // 👈 IMAGE FIELD
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -147,11 +148,16 @@ class _ResidentPendingVisitorsScreenState
                             child: Row(
                               children: [
                                 CircleAvatar(
-                                  radius: 24,
+                                  radius: 28,
                                   backgroundColor:
                                       AppColors.secondary.withOpacity(0.1),
-                                  child: const Icon(Icons.person,
-                                      color: AppColors.secondary),
+                                  backgroundImage: photoUrl != null
+                                      ? NetworkImage(photoUrl)
+                                      : null,
+                                  child: photoUrl == null
+                                      ? const Icon(Icons.person,
+                                          color: AppColors.secondary)
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -200,7 +206,7 @@ class _ResidentPendingVisitorsScreenState
                                   ),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
+                                        vertical: 14),
                                     decoration: BoxDecoration(
                                       color: AppColors.error.withOpacity(0.1),
                                       borderRadius: const BorderRadius.only(
@@ -221,7 +227,7 @@ class _ResidentPendingVisitorsScreenState
                               ),
                               Container(
                                   width: 1,
-                                  height: 45,
+                                  height: 50,
                                   color: Colors.grey.shade200),
                               Expanded(
                                 child: InkWell(
@@ -231,7 +237,7 @@ class _ResidentPendingVisitorsScreenState
                                   ),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
+                                        vertical: 14),
                                     decoration: BoxDecoration(
                                       color: Colors.green.withOpacity(0.1),
                                       borderRadius: const BorderRadius.only(

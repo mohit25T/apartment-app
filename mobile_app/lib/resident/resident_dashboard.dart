@@ -4,6 +4,7 @@ import 'package:mobile_app/core/navigation/animation_navigation.dart';
 import '../core/storage/role_storage.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
+import '../core/api/api_service.dart';
 
 class ResidentDashboard extends StatefulWidget {
   const ResidentDashboard({super.key});
@@ -14,11 +15,14 @@ class ResidentDashboard extends StatefulWidget {
 
 class _ResidentDashboardState extends State<ResidentDashboard> {
   List<String> roles = [];
+  String? profileImage;
+  bool loadingProfile = true;
 
   @override
   void initState() {
     super.initState();
     loadRoles();
+    fetchProfile();
   }
 
   Future<void> loadRoles() async {
@@ -28,7 +32,19 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     });
   }
 
-  /// ✅ UPDATED LOGIC
+  Future<void> fetchProfile() async {
+    final response = await ApiService.get("/users/me");
+
+    if (response != null && response["user"] != null) {
+      setState(() {
+        profileImage = response["user"]["profileImage"];
+        loadingProfile = false;
+      });
+    } else {
+      setState(() => loadingProfile = false);
+    }
+  }
+
   bool get canSwitch =>
       roles.contains("ADMIN") &&
       (roles.contains("OWNER") || roles.contains("TENANT"));
@@ -65,16 +81,35 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ).then((_) => fetchProfile());
+              },
+              child: loadingProfile
+                  ? const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage: profileImage != null
+                          ? NetworkImage(profileImage!)
+                          : null,
+                      child: profileImage == null
+                          ? const Icon(Icons.person, color: AppColors.primary)
+                          : null,
+                    ),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -173,30 +208,12 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.admin_panel_settings_rounded,
-              color: AppColors.primary),
-        ),
-        title: const Text(
-          "Switch to Admin",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        leading: const Icon(Icons.admin_panel_settings_rounded,
+            color: AppColors.primary),
+        title: const Text("Switch to Admin",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         subtitle: const Text("Access admin controls"),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
         onTap: () {
@@ -210,13 +227,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  Widget _buildNotificationCard(
-    String title,
-    IconData icon,
-    Color color,
-    String route,
-    String badgeText,
-  ) {
+  Widget _buildNotificationCard(String title, IconData icon, Color color,
+      String route, String badgeText) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
       borderRadius: BorderRadius.circular(16),
@@ -225,49 +237,14 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border(left: BorderSide(color: color, width: 4)),
         ),
         child: Row(
           children: [
             Icon(icon, color: color, size: 32),
             const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: Text(title,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const Icon(Icons.arrow_forward_ios_rounded,
                 size: 16, color: Colors.grey),
@@ -286,13 +263,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
