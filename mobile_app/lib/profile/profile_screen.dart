@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      _loadProfile(); // 🔁 Refresh profile
+      _loadProfile(); // refresh
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -90,9 +90,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /* ===============================
-     🔥 LOGOUT
-  =============================== */
+  final String supportPhone = "tel:+917043622519";
+  final String supportWhatsApp =
+      "whatsapp://send?phone=917043622519&text=Hi%2C%20I%27m%20facing%20an%20issue%20with%20my%20account.";
+  final String supportEmail = "mailto:mohittopiya2564@gmail.com";
+
+  Future<void> openLink(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Unable to open support option")),
+      );
+    }
+  }
+
+  Future<void> _navigateAndRefresh(String route) async {
+    await Navigator.pushNamed(context, route);
+    _loadProfile();
+  }
+
   Future<void> _logout() async {
     try {
       await ApiService.post("/auth/logout", {});
@@ -144,20 +160,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  final String supportPhone = "tel:+917043622519";
-  final String supportWhatsApp =
-      "whatsapp://send?phone=917043622519&text=Hi%2C%20I%27m%20facing%20an%20issue%20with%20my%20account.";
-  final String supportEmail = "mailto:mohittopiya2564@gmail.com";
-
-  Future<void> openLink(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Unable to open support option")),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,10 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
 
-                      /* ===============================
-                         PROFILE HEADER
-                      =============================== */
-
+                      // ===== PROFILE HEADER =====
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -263,19 +262,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                             Text(
                               user!["email"] ?? "-",
-                              style:
-                                  TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                user!["mobile"] ?? "-",
+                                style: const TextStyle(
+                                  color: AppColors.secondary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 24),
 
-                      /* ===============================
-                         LOGOUT
-                      =============================== */
+                      // ===== DETAILS =====
+                      _buildSectionTitle("Details"),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            _infoTile("Status", user!["status"], Icons.info),
+                            if (user!["flatNo"] != null)
+                              _infoTile("Flat No", user!["flatNo"], Icons.home),
+                            if (user!["society"] != null)
+                              _infoTile(
+                                "Society",
+                                user!["society"]["name"],
+                                Icons.location_city,
+                              ),
+                          ],
+                        ),
+                      ),
 
+                      const SizedBox(height: 24),
+
+                      // ===== LOGOUT =====
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -283,20 +322,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppColors.error,
-                            side: const BorderSide(
-                                color: AppColors.error),
+                            side: const BorderSide(color: AppColors.error),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           onPressed: _confirmLogout,
                           child: const Text("Logout"),
                         ),
                       ),
+
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _infoTile(String label, String? value, IconData icon) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label),
+      trailing: Text(value ?? "-"),
     );
   }
 }
