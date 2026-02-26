@@ -126,7 +126,7 @@ class _ResidentPendingVisitorsScreenState
                   itemCount: visitors.length,
                   itemBuilder: (context, index) {
                     final v = visitors[index];
-                    final photoUrl = v["visitorPhoto"]; // 👈 IMAGE FIELD
+                    final photoUrl = v["visitorPhoto"];
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -147,17 +147,35 @@ class _ResidentPendingVisitorsScreenState
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 28,
-                                  backgroundColor:
-                                      AppColors.secondary.withOpacity(0.1),
-                                  backgroundImage: photoUrl != null
-                                      ? NetworkImage(photoUrl)
+                                GestureDetector(
+                                  onTap: photoUrl != null
+                                      ? () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  FullScreenImageViewer(
+                                                      imageUrl: photoUrl),
+                                            ),
+                                          );
+                                        }
                                       : null,
-                                  child: photoUrl == null
-                                      ? const Icon(Icons.person,
-                                          color: AppColors.secondary)
-                                      : null,
+                                  child: Hero(
+                                    tag: photoUrl ?? "no-photo-$index",
+                                    child: CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor:
+                                          AppColors.secondary.withOpacity(0.1),
+                                      backgroundImage: photoUrl != null
+                                          ? NetworkImage(photoUrl +
+                                              "?t=${DateTime.now().millisecondsSinceEpoch}")
+                                          : null,
+                                      child: photoUrl == null
+                                          ? const Icon(Icons.person,
+                                              color: AppColors.secondary)
+                                          : null,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -263,6 +281,44 @@ class _ResidentPendingVisitorsScreenState
                     );
                   },
                 ),
+    );
+  }
+}
+
+/* ============================
+     FULL SCREEN IMAGE VIEWER
+============================ */
+class FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageViewer({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Center(
+          child: Hero(
+            tag: imageUrl,
+            child: InteractiveViewer(
+              minScale: 0.8,
+              maxScale: 4,
+              child: Image.network(
+                imageUrl + "?t=${DateTime.now().millisecondsSinceEpoch}",
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const CircularProgressIndicator(
+                    color: Colors.white,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

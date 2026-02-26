@@ -31,14 +31,15 @@ class _UsersListScreenState extends State<UsersListScreen> {
     currentUserId = await UserStorage.getUserId();
   }
 
+  // ✅ UPDATED METHOD
   Future<void> _fetchUsers() async {
     setState(() => loading = true);
 
     try {
       final response = await ApiService.get("/users/by-society");
 
-      if (response != null && response is List) {
-        users = response;
+      if (response != null && response["success"] == true) {
+        users = response["users"] ?? [];
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -151,7 +152,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
                 itemBuilder: (context, index) {
                   final user = users[index];
                   final bool showBlock = shouldShowBlockButton(user);
-                  final String? profileImage = user["profileImage"];
 
                   return Container(
                     margin:
@@ -169,31 +169,20 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     ),
                     child: Row(
                       children: [
+                        // ✅ PROFILE IMAGE
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: AppColors.primary.withOpacity(0.1),
-                          child: profileImage != null
-                              ? ClipOval(
-                                  child: Image.network(
-                                    profileImage,
-                                    width: 56,
-                                    height: 56,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, progress) {
-                                      if (progress == null) return child;
-                                      return const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      );
-                                    },
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(Icons.person),
-                                  ),
+                          backgroundImage: user["profileImage"] != null
+                              ? NetworkImage(
+                                  user["profileImage"] +
+                                      "?t=${DateTime.now().millisecondsSinceEpoch}",
                                 )
-                              : const Icon(Icons.person,
-                                  color: AppColors.primary),
+                              : null,
+                          child: user["profileImage"] == null
+                              ? const Icon(Icons.person,
+                                  color: AppColors.primary)
+                              : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(

@@ -32,17 +32,17 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     });
   }
 
+  // ✅ UPDATED METHOD
   Future<void> fetchProfile() async {
-    final response = await ApiService.get("/users/me");
+    setState(() => loadingProfile = true);
 
-    if (response != null && response["user"] != null) {
-      setState(() {
-        profileImage = response["user"]["profileImage"];
-        loadingProfile = false;
-      });
-    } else {
-      setState(() => loadingProfile = false);
+    final response = await ApiService.get("/users/profile");
+
+    if (response != null && response["success"] == true) {
+      profileImage = response["user"]["profileImage"];
     }
+
+    setState(() => loadingProfile = false);
   }
 
   bool get canSwitch =>
@@ -100,9 +100,13 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                       ),
                     )
                   : CircleAvatar(
+                      radius: 20,
                       backgroundColor: Colors.white,
                       backgroundImage: profileImage != null
-                          ? NetworkImage(profileImage!)
+                          ? NetworkImage(
+                              profileImage! +
+                                  "?t=${DateTime.now().millisecondsSinceEpoch}",
+                            )
                           : null,
                       child: profileImage == null
                           ? const Icon(Icons.person, color: AppColors.primary)
