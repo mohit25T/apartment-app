@@ -31,7 +31,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     currentUserId = await UserStorage.getUserId();
   }
 
-  // ✅ UPDATED METHOD
   Future<void> _fetchUsers() async {
     setState(() => loading = true);
 
@@ -169,7 +168,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     ),
                     child: Row(
                       children: [
-                        // ✅ PROFILE IMAGE
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: AppColors.primary.withOpacity(0.1),
@@ -197,6 +195,33 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
+
+                              // EMAIL
+                              if (user["email"] != null &&
+                                  user["email"].toString().isNotEmpty)
+                                Text(
+                                  user["email"],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+
+                              const SizedBox(height: 2),
+
+                              // MOBILE
+                              if (user["mobile"] != null &&
+                                  user["mobile"].toString().isNotEmpty)
+                                Text(
+                                  user["mobile"].toString(),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+
+                              const SizedBox(height: 6),
+
                               Text(
                                 (user["roles"] as List?)?.join(", ") ?? "",
                                 style: const TextStyle(color: Colors.grey),
