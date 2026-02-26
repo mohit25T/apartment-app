@@ -38,9 +38,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
       final response = await ApiService.get("/users/by-society");
 
       if (response != null && response is List) {
-        setState(() {
-          users = response;
-        });
+        users = response;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -56,9 +54,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() => loading = false);
     }
+
+    setState(() => loading = false);
   }
 
   Future<void> toggleBlock(int index) async {
@@ -118,7 +116,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     }
   }
 
-  // ✅ UPDATED ROLE CHECK
   bool shouldShowBlockButton(Map<String, dynamic> user) {
     final List roles = user["roles"] ?? [];
 
@@ -154,6 +151,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                 itemBuilder: (context, index) {
                   final user = users[index];
                   final bool showBlock = shouldShowBlockButton(user);
+                  final String? profileImage = user["profileImage"];
 
                   return Container(
                     margin:
@@ -172,9 +170,30 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     child: Row(
                       children: [
                         CircleAvatar(
+                          radius: 28,
                           backgroundColor: AppColors.primary.withOpacity(0.1),
-                          child: const Icon(Icons.person,
-                              color: AppColors.primary),
+                          child: profileImage != null
+                              ? ClipOval(
+                                  child: Image.network(
+                                    profileImage,
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, progress) {
+                                      if (progress == null) return child;
+                                      return const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      );
+                                    },
+                                    errorBuilder: (_, __, ___) =>
+                                        const Icon(Icons.person),
+                                  ),
+                                )
+                              : const Icon(Icons.person,
+                                  color: AppColors.primary),
                         ),
                         const SizedBox(width: 16),
                         Expanded(

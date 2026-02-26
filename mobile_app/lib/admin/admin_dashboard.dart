@@ -4,6 +4,7 @@ import '../core/storage/role_storage.dart';
 import '../core/navigation/animation_navigation.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
+import '../core/api/api_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -14,11 +15,14 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   List<String> roles = [];
+  String? profileImage;
+  bool loadingProfile = true;
 
   @override
   void initState() {
     super.initState();
     loadRoles();
+    fetchProfile();
   }
 
   Future<void> loadRoles() async {
@@ -28,7 +32,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
-  // ✅ UPDATED: ADMIN + (OWNER or TENANT)
+  Future<void> fetchProfile() async {
+    final response = await ApiService.get("/users/me");
+
+    if (response != null && response["user"] != null) {
+      profileImage = response["user"]["profileImage"];
+    }
+
+    setState(() => loadingProfile = false);
+  }
+
   bool get canSwitch =>
       roles.contains("ADMIN") &&
       (roles.contains("OWNER") || roles.contains("TENANT"));
@@ -65,16 +78,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline_rounded, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ).then((_) => fetchProfile());
+              },
+              child: loadingProfile
+                  ? const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage: profileImage != null
+                          ? NetworkImage(profileImage!)
+                          : null,
+                      child: profileImage == null
+                          ? const Icon(Icons.person, color: AppColors.primary)
+                          : null,
+                    ),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -171,13 +203,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.teal.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

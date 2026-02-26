@@ -128,7 +128,7 @@ class _ResidentVisitorHistoryScreenState
 
                     final v = visitors[index];
                     final status = v["status"] ?? "N/A";
-                    final photoUrl = v["photo"];
+                    final photoUrl = v["visitorPhoto"];
 
                     Color statusColor = Colors.grey;
                     if (status == "APPROVED") {

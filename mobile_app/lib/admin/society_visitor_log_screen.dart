@@ -49,37 +49,43 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
         await ApiService.get("/admin/Society?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
-      setState(() {
-        visitors = response["visitors"] ?? [];
-        hasMore = response["hasMore"] ?? false;
-        loading = false;
-      });
-    } else {
-      setState(() {
-        loading = false;
-      });
+      visitors = response["visitors"] ?? [];
+      hasMore = response["hasMore"] ?? false;
     }
+
+    setState(() => loading = false);
   }
 
   Future<void> loadMoreLogs() async {
     if (!hasMore) return;
 
     setState(() => isLoadingMore = true);
-
     currentPage++;
 
     final response =
         await ApiService.get("/admin/Society?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
-      setState(() {
-        visitors.addAll(response["visitors"] ?? []);
-        hasMore = response["hasMore"] ?? false;
-        isLoadingMore = false;
-      });
-    } else {
-      setState(() => isLoadingMore = false);
+      visitors.addAll(response["visitors"] ?? []);
+      hasMore = response["hasMore"] ?? false;
     }
+
+    setState(() => isLoadingMore = false);
+  }
+
+  void showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        child: InteractiveViewer(
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -106,8 +112,7 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   itemCount: visitors.length + (hasMore ? 1 : 0),
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     if (index == visitors.length) {
                       return const Padding(
@@ -120,13 +125,16 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
 
                     final v = visitors[index];
                     final String status = v["status"] ?? "N/A";
+                    final String? photoUrl = v["photo"];
 
                     Color statusColor = Colors.grey;
-                    if (status == "APPROVED")
+                    if (status == "APPROVED") {
                       statusColor = Colors.green;
-                    else if (status == "REJECTED")
+                    } else if (status == "REJECTED") {
                       statusColor = Colors.red;
-                    else if (status == "PENDING") statusColor = Colors.orange;
+                    } else if (status == "PENDING") {
+                      statusColor = Colors.orange;
+                    }
 
                     return Container(
                       padding: const EdgeInsets.all(16),
@@ -135,20 +143,45 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8),
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                          ),
                         ],
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
+                          GestureDetector(
+                            onTap: photoUrl != null
+                                ? () => showFullImage(photoUrl)
+                                : null,
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundColor:
+                                  AppColors.primary.withOpacity(0.1),
+                              child: photoUrl != null
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        photoUrl,
+                                        width: 56,
+                                        height: 56,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, progress) {
+                                          if (progress == null) return child;
+                                          return const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
+                                          );
+                                        },
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.person),
+                                      ),
+                                    )
+                                  : const Icon(Icons.person,
+                                      color: AppColors.primary),
                             ),
-                            child: const Icon(Icons.person,
-                                color: AppColors.primary),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

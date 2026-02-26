@@ -146,7 +146,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
 
                     final v = visitors[index];
                     final status = v["status"];
-                    final photoUrl = v["photo"]; // 👈 IMAGE FIELD
+                    final photoUrl = v["visitorPhoto"]; // 👈 IMAGE FIELD
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
