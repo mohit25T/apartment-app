@@ -125,7 +125,7 @@ class _SocietyVisitorLogsScreenState extends State<SocietyVisitorLogsScreen> {
 
                     final v = visitors[index];
                     final String status = v["status"] ?? "N/A";
-                    final String? photoUrl = v["photo"];
+                    final String? photoUrl = v["visitorPhoto"];
 
                     Color statusColor = Colors.grey;
                     if (status == "APPROVED") {
