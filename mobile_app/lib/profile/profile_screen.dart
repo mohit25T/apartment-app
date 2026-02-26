@@ -66,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       "/users/upload-profile-photo",
       {},
       file: File(pickedFile.path),
-      fileFieldName: "image", // MUST match backend
+      fileFieldName: "image",
     );
 
     setState(() => isUploading = false);
@@ -78,8 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.green,
         ),
       );
-
-      _loadProfile(); // refresh
+      _loadProfile();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -178,8 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-
-                      // ===== PROFILE HEADER =====
+                      // ================= PROFILE HEADER =================
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -195,7 +193,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Column(
                           children: [
-
                             GestureDetector(
                               onTap: _pickAndUploadImage,
                               child: Stack(
@@ -214,19 +211,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             : null,
                                     child: user!["profileImage"] == null
                                         ? const Icon(Icons.person,
-                                            size: 50,
-                                            color: AppColors.primary)
+                                            size: 50, color: AppColors.primary)
                                         : null,
                                   ),
-
                                   if (isUploading)
                                     const Positioned.fill(
                                       child: Center(
-                                        child:
-                                            CircularProgressIndicator(),
+                                        child: CircularProgressIndicator(),
                                       ),
                                     ),
-
                                   Positioned(
                                     bottom: 0,
                                     right: 0,
@@ -246,9 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 16),
-
                             Text(
                               user!["name"] ?? "User Name",
                               style: const TextStyle(
@@ -257,16 +248,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: AppColors.textPrimary,
                               ),
                             ),
-
                             const SizedBox(height: 4),
-
                             Text(
                               user!["email"] ?? "-",
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
-
                             const SizedBox(height: 4),
-
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
@@ -289,7 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // ===== DETAILS =====
+                      // ================= DETAILS =================
                       _buildSectionTitle("Details"),
                       const SizedBox(height: 12),
                       Container(
@@ -299,7 +286,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Column(
                           children: [
-                            _infoTile("Status", user!["status"], Icons.info),
+                            _infoTile(
+                                "Status", user!["status"], Icons.info_outline),
                             if (user!["flatNo"] != null)
                               _infoTile("Flat No", user!["flatNo"], Icons.home),
                             if (user!["society"] != null)
@@ -314,7 +302,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       const SizedBox(height: 24),
 
-                      // ===== LOGOUT =====
+                      // ================= ACCOUNT SETTINGS =================
+                      _buildSectionTitle("Account Settings"),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            _actionTile(
+                              "Change Email",
+                              Icons.email_outlined,
+                              () => _navigateAndRefresh("/change-email"),
+                            ),
+                            const Divider(height: 1),
+                            _actionTile(
+                              "Change Phone Number",
+                              Icons.phone_android_outlined,
+                              () => _navigateAndRefresh("/change-mobile"),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // ================= LOGOUT =================
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -329,6 +344,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           onPressed: _confirmLogout,
                           child: const Text("Logout"),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // ================= SUPPORT =================
+                      _buildSectionTitle("Support"),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            _actionTile("Call Support", Icons.call,
+                                () => openLink(supportPhone)),
+                            const Divider(height: 1),
+                            _actionTile(
+                                "WhatsApp Support",
+                                Icons.chat_bubble_outline,
+                                () => openLink(supportWhatsApp)),
+                            const Divider(height: 1),
+                            _actionTile("Email Support", Icons.email,
+                                () => openLink(supportEmail)),
+                          ],
                         ),
                       ),
 
@@ -358,6 +399,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Icon(icon, color: AppColors.primary),
       title: Text(label),
       trailing: Text(value ?? "-"),
+    );
+  }
+
+  Widget _actionTile(String title, IconData icon, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(title),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded,
+          size: 16, color: Colors.grey),
+      onTap: onTap,
     );
   }
 }
