@@ -60,8 +60,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           children: [
             const CircleAvatar(
               backgroundColor: Colors.white,
-              child:
-                  Icon(Icons.admin_panel_settings, color: AppColors.primary),
+              child: Icon(Icons.admin_panel_settings, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Column(
@@ -69,14 +68,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 const Text(
                   "Admin Dashboard",
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   "Manage Society",
                   style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.8)),
+                      fontSize: 12, color: Colors.white.withOpacity(0.8)),
                 ),
               ],
             ),
@@ -89,8 +86,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const ProfileScreen()),
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 ).then((_) => fetchProfile());
               },
               child: loadingProfile
@@ -99,8 +95,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       child: SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     )
                   : CircleAvatar(
@@ -113,8 +108,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             )
                           : null,
                       child: profileImage == null
-                          ? const Icon(Icons.person,
-                              color: AppColors.primary)
+                          ? const Icon(Icons.person, color: AppColors.primary)
                           : null,
                     ),
             ),
@@ -141,8 +135,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(height: 16),
                 GridView.count(
                   shrinkWrap: true,
-                  physics:
-                      const NeverScrollableScrollPhysics(),
+                  physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -165,6 +158,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Icons.group_add_rounded,
                       Colors.blueAccent,
                       "/invite-resident",
+                    ),
+                    _buildActionCard(
+                      "Pending\nTenants",
+                      Icons.person_add_alt_1_rounded,
+                      Colors.redAccent,
+                      "/pending-tenants",
                     ),
                     _buildActionCard(
                       "Manage\nUsers",
@@ -196,8 +195,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildHeader() {
     return Container(
-      padding:
-          const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+      padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
       decoration: const BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.only(
@@ -212,26 +210,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.teal.shade400,
-            Colors.teal.shade700
-          ],
+          colors: [Colors.teal.shade400, Colors.teal.shade700],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.home_rounded,
-              color: Colors.white),
+          child: const Icon(Icons.home_rounded, color: Colors.white),
         ),
         title: const Text(
           "Switch to Personal Mode",
@@ -242,13 +235,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         subtitle: const Text(
           "Access your flat dashboard",
-          style:
-              TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
-        trailing: const Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: Colors.white,
-            size: 16),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded,
+            color: Colors.white, size: 16),
         onTap: () {
           AnimatedNavigation.pushReplacement(
             context,
@@ -271,26 +261,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color:
-                  Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding:
-                  const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child:
-                  Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 32),
             ),
             const SizedBox(height: 12),
             Text(

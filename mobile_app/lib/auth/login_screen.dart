@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => loading = false);
 
-    if (response["message"] == "OTP sent successfully to email") {
+    if (response["message"] == "OTP sent successfully") {
       Navigator.pushNamed(
         context,
         "/otp",
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              
+
               // Input Field
               TextField(
                 controller: mobileController,
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Action Button
               SizedBox(
                 height: 50,
@@ -140,15 +140,16 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 60),
               Row(
                 children: [
-                   Expanded(child: Divider(color: Colors.grey.shade300)),
-                   Padding(
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       "Need Help?",
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     ),
                   ),
-                   Expanded(child: Divider(color: Colors.grey.shade300)),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
                 ],
               ),
               const SizedBox(height: 20),

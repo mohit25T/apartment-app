@@ -159,4 +159,39 @@ class ApiService {
       return {"error": true, "message": "Network error"};
     }
   }
+
+  // ================= DELETE =================
+  static Future<dynamic> delete(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final token = await TokenStorage.getToken();
+
+      final response = await http.delete(
+        Uri.parse(ApiConstants.baseUrl + endpoint),
+        headers: {
+          "Content-Type": "application/json",
+          if (token != null) "Authorization": "Bearer $token",
+        },
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      print("STATUS CODE => ${response.statusCode}");
+      print("RAW RESPONSE => ${response.body}");
+
+      // 🔐 Safety check for JSON response
+      if (response.body.isEmpty) {
+        return {"error": true, "message": "Empty server response"};
+      }
+
+      if (!response.headers["content-type"]!.contains("application/json")) {
+        return {"error": true, "message": "Invalid server response"};
+      }
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"error": true, "message": "Network error"};
+    }
+  }
 }

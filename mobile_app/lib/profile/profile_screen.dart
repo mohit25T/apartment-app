@@ -284,6 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           GestureDetector(
             onTap: _showImageOptions,
             child: Stack(
+              clipBehavior: Clip.none, // 🔥 VERY IMPORTANT
               alignment: Alignment.center,
               children: [
                 CircleAvatar(

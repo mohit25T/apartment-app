@@ -32,7 +32,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     });
   }
 
-  // ✅ UPDATED METHOD
   Future<void> fetchProfile() async {
     setState(() => loadingProfile = true);
 
@@ -48,6 +47,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
   bool get canSwitch =>
       roles.contains("ADMIN") &&
       (roles.contains("OWNER") || roles.contains("TENANT"));
+
+  bool get isOwner => roles.contains("OWNER");
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +126,45 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               children: [
                 if (canSwitch) _buildSwitchModeCard(),
                 const SizedBox(height: 20),
+
+                // ✅ FLAT MANAGEMENT SECTION (OWNER ONLY)
+                if (isOwner) ...[
+                  const Text(
+                    "Flat Management",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.1,
+                    children: [
+                      _buildFeatureCard(
+                        "Invite\nTenant",
+                        Icons.person_add_alt_1_rounded,
+                        Colors.green,
+                        "/invite-tenant",
+                      ),
+                      _buildFeatureCard(
+                        "My\nTenant",
+                        Icons.people_alt_rounded,
+                        Colors.blue,
+                        "/my-tenant",
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
+
                 const Text(
                   "Notifications",
                   style: TextStyle(
@@ -142,6 +182,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   "Action Required",
                 ),
                 const SizedBox(height: 24),
+
                 const Text(
                   "My Features",
                   style: TextStyle(
