@@ -138,7 +138,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -161,7 +160,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
                 ],
 
@@ -211,6 +209,24 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                       Icons.qr_code_rounded,
                       Colors.teal,
                       "/preapproved-guest",
+                    ),
+                    _buildFeatureCard(
+                      "Raise\nComplaint",
+                      Icons.report_problem_rounded,
+                      Colors.redAccent,
+                      "/complaint-create",
+                    ),
+                    _buildFeatureCard(
+                      "My\nComplaints",
+                      Icons.list_alt_rounded,
+                      Colors.deepOrange,
+                      "/my-complaints",
+                    ),
+                    _buildFeatureCard(
+                      "Notices",
+                      Icons.campaign_rounded,
+                      Colors.indigo,
+                      "/notices",
                     ),
                     _buildFeatureCard(
                       "Visitor\nHistory",

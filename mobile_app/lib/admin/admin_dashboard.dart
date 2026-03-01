@@ -178,6 +178,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       "/invite-guard",
                     ),
                     _buildActionCard(
+                      "Manage\nComplaints",
+                      Icons.admin_panel_settings_rounded,
+                      Colors.red,
+                      "/admin-complaints",
+                    ),
+                    _buildActionCard(
+                      "Create\nNotice",
+                      Icons.post_add_rounded,
+                      Colors.blue,
+                      "/create-notice",
+                    ),
+                    _buildActionCard(
+                      "View\nNotices",
+                      Icons.campaign_rounded,
+                      Colors.indigo,
+                      "/notices",
+                    ),
+                    _buildActionCard(
                       "Visitor\nLogs",
                       Icons.history_edu_rounded,
                       Colors.purpleAccent,
