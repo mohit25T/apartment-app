@@ -108,10 +108,12 @@ class ApiService {
   }
 
   // ================= MULTIPART (IMAGE UPLOAD) =================
+  // ================= MULTIPART (SINGLE + MULTIPLE IMAGE UPLOAD) =================
   static Future<dynamic> multipart(
     String endpoint,
     Map<String, dynamic> fields, {
-    required File? file,
+    File? file, // optional single file
+    List<File>? files, // optional multiple files
     required String fileFieldName,
   }) async {
     try {
@@ -122,19 +124,19 @@ class ApiService {
         Uri.parse(ApiConstants.baseUrl + endpoint),
       );
 
-      // Add headers
+      // 🔐 Add Authorization Header
       if (token != null) {
         request.headers["Authorization"] = "Bearer $token";
       }
 
-      // Add text fields
+      // 📝 Add Text Fields
       fields.forEach((key, value) {
         if (value != null) {
           request.fields[key] = value.toString();
         }
       });
 
-      // Add file
+      // 📷 Add SINGLE File
       if (file != null) {
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -144,18 +146,33 @@ class ApiService {
         );
       }
 
+      // 📷 Add MULTIPLE Files
+      if (files != null && files.isNotEmpty) {
+        for (var f in files) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              fileFieldName,
+              f.path,
+            ),
+          );
+        }
+      }
+
+      // 🚀 Send Request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
       print("STATUS CODE => ${response.statusCode}");
       print("RAW RESPONSE => ${response.body}");
 
+      // 🔍 Handle Empty Response
       if (response.body.isEmpty) {
         return {"error": true, "message": "Empty response from server"};
       }
 
       return jsonDecode(response.body);
     } catch (e) {
+      print("MULTIPART ERROR => $e");
       return {"error": true, "message": "Network error"};
     }
   }
