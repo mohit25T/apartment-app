@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/src/material/dropdown.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
 import '../core/widgets/walking_loader.dart';
@@ -20,17 +20,17 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
   String priority = "MEDIUM";
 
   bool loading = false;
-  List<File> selectedImages = [];
+  List<XFile> selectedImages = []; // ✅ FIXED
 
   final ImagePicker _picker = ImagePicker();
 
   /* ================= PICK IMAGES ================= */
 
   Future<void> pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
+    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 70);
 
     setState(() {
-      selectedImages.addAll(images.map((e) => File(e.path)));
+      selectedImages.addAll(images);
     });
   }
 
@@ -60,7 +60,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
         "title": titleController.text.trim(),
         "description": descriptionController.text.trim(),
       },
-      files: selectedImages.isNotEmpty ? selectedImages : null,
+      xFiles: selectedImages.isNotEmpty ? selectedImages : null, // ✅ FIXED
       fileFieldName: "images",
     );
 
@@ -113,12 +113,15 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField(
-              value: category,
+              // value: category,
               items: const [
-                DropdownMenuItem(value: "GENERAL", child: Text("General")),
+                DropdownMenuItem(value: "PLUMBING", child: Text("Plumbing")),
                 DropdownMenuItem(
-                    value: "MAINTENANCE", child: Text("Maintenance")),
+                    value: "ELECTRICITY", child: Text("Electricity")),
                 DropdownMenuItem(value: "SECURITY", child: Text("Security")),
+                DropdownMenuItem(value: "CLEANING", child: Text("Cleaning")),
+                DropdownMenuItem(value: "LIFT", child: Text("Lift")),
+                DropdownMenuItem(value: "OTHER", child: Text("Other")),
               ],
               onChanged: (value) => setState(() => category = value!),
               decoration: const InputDecoration(
@@ -139,12 +142,17 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
+            /// ADD IMAGES BUTTON
             ElevatedButton.icon(
               onPressed: pickImages,
               icon: const Icon(Icons.image),
               label: const Text("Add Images"),
             ),
+
             const SizedBox(height: 12),
+
+            /// IMAGE PREVIEW
             if (selectedImages.isNotEmpty)
               SizedBox(
                 height: 110,
@@ -158,8 +166,8 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                           padding: const EdgeInsets.only(right: 8),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              selectedImages[index],
+                            child: Image.network(
+                              selectedImages[index].path,
                               width: 100,
                               fit: BoxFit.cover,
                             ),
@@ -186,7 +194,9 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                   },
                 ),
               ),
+
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               height: 50,

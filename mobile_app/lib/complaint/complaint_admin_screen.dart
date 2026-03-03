@@ -23,7 +23,7 @@ class _ComplaintAdminScreenState extends State<ComplaintAdminScreen> {
   Future<void> fetchComplaints() async {
     setState(() => loading = true);
 
-    final response = await ApiService.get("/complaints/all");
+    final response = await ApiService.get("/complaints");
 
     if (response != null && response["success"] == true) {
       complaints = response["data"];
@@ -51,7 +51,7 @@ class _ComplaintAdminScreenState extends State<ComplaintAdminScreen> {
     String? adminResponse,
   ) async {
     final response = await ApiService.patch(
-      "/complaints/update/$id",
+      "/complaints/$id",
       body: {"status": newStatus, "adminResponse": adminResponse},
     );
 

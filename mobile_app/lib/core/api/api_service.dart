@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../constants/api_constants.dart';
 import '../storage/token_storage.dart';
 
@@ -108,12 +110,11 @@ class ApiService {
   }
 
   // ================= MULTIPART (IMAGE UPLOAD) =================
-  // ================= MULTIPART (SINGLE + MULTIPLE IMAGE UPLOAD) =================
+// ================= MULTIPART (WEB + MOBILE SAFE) =================
   static Future<dynamic> multipart(
     String endpoint,
     Map<String, dynamic> fields, {
-    File? file, // optional single file
-    List<File>? files, // optional multiple files
+    List<XFile>? xFiles,
     required String fileFieldName,
   }) async {
     try {
@@ -124,50 +125,50 @@ class ApiService {
         Uri.parse(ApiConstants.baseUrl + endpoint),
       );
 
-      // 🔐 Add Authorization Header
+      // Add auth header
       if (token != null) {
         request.headers["Authorization"] = "Bearer $token";
       }
 
-      // 📝 Add Text Fields
+      // Add text fields
       fields.forEach((key, value) {
         if (value != null) {
           request.fields[key] = value.toString();
         }
       });
 
-      // 📷 Add SINGLE File
-      if (file != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            fileFieldName,
-            file.path,
-          ),
-        );
-      }
+      // Add files (Web + Mobile Safe)
+      if (xFiles != null) {
+        for (var file in xFiles) {
+          if (kIsWeb) {
+            Uint8List bytes = await file.readAsBytes();
 
-      // 📷 Add MULTIPLE Files
-      if (files != null && files.isNotEmpty) {
-        for (var f in files) {
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              fileFieldName,
-              f.path,
-            ),
-          );
+            request.files.add(
+              http.MultipartFile.fromBytes(
+                fileFieldName,
+                bytes,
+                filename: file.name,
+              ),
+            );
+          } else {
+            request.files.add(
+              await http.MultipartFile.fromPath(
+                fileFieldName,
+                file.path,
+              ),
+            );
+          }
         }
       }
 
-      // 🚀 Send Request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
       print("STATUS CODE => ${response.statusCode}");
       print("RAW RESPONSE => ${response.body}");
 
-      // 🔍 Handle Empty Response
       if (response.body.isEmpty) {
-        return {"error": true, "message": "Empty response from server"};
+        return {"error": true, "message": "Empty server response"};
       }
 
       return jsonDecode(response.body);

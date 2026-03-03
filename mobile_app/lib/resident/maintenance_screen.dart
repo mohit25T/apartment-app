@@ -68,7 +68,6 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     if (!hasMore) return;
 
     setState(() => isLoadingMore = true);
-
     currentPage++;
 
     final response = await ApiService.get(
@@ -88,7 +87,19 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   Color getStatusColor(String status) {
     if (status == "Paid") return Colors.green;
     if (status == "Pending") return Colors.orange;
-    return Colors.red;
+    return Colors.red; // Overdue
+  }
+
+  bool isDueInFiveDays(String? dueDateStr, String status) {
+    if (dueDateStr == null || status != "Pending") return false;
+
+    final dueDate = DateTime.tryParse(dueDateStr);
+    if (dueDate == null) return false;
+
+    final today = DateTime.now();
+    final difference = dueDate.difference(today).inDays;
+
+    return difference >= 0 && difference <= 5;
   }
 
   @override
@@ -123,6 +134,12 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   }
 
                   final bill = bills[index];
+                  final status = bill["status"] ?? "Pending";
+                  final dueDate = bill["dueDate"];
+                  final paidAt = bill["paidAt"];
+                  final paymentMode = bill["paymentMode"];
+
+                  final showReminder = isDueInFiveDays(dueDate, status);
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -142,27 +159,71 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          bill["month"],
+                          bill["month"] ?? "",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text("Amount: ₹${bill["amount"]}"),
-                        const SizedBox(height: 8),
+                        Text(
+                          "Amount: ₹${bill["amount"]}",
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        const SizedBox(height: 6),
+                        if (dueDate != null)
+                          Text(
+                            "Due: ${DateTime.parse(dueDate).toLocal().toString().split(" ")[0]}",
+                            style: TextStyle(
+                              color:
+                                  showReminder ? Colors.red : Colors.grey[700],
+                            ),
+                          ),
+                        if (showReminder)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              "⚠ Due within 5 days",
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        if (status == "Paid" && paidAt != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              "Paid on: ${DateTime.parse(paidAt).toLocal().toString().split(" ")[0]}",
+                              style: const TextStyle(
+                                color: Colors.green,
+                              ),
+                            ),
+                          ),
+                        if (status == "Paid" && paymentMode != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              "Mode: $paymentMode",
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color:
-                                getStatusColor(bill["status"]).withOpacity(0.1),
+                            color: getStatusColor(status).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            bill["status"],
+                            status,
                             style: TextStyle(
-                              color: getStatusColor(bill["status"]),
+                              color: getStatusColor(status),
                               fontWeight: FontWeight.bold,
                             ),
                           ),

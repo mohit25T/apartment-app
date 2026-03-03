@@ -14,12 +14,16 @@ class GenerateMaintenanceScreen extends StatefulWidget {
 
 class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
   final TextEditingController amountController = TextEditingController();
-  final TextEditingController dueDateController = TextEditingController();
 
   bool loading = false;
 
   String? selectedMonth;
   String selectedYear = DateTime.now().year.toString();
+  int? selectedDueDay;
+
+  DateTime? selectedDueDate;
+
+  final DateTime now = DateTime.now();
 
   final List<String> months = const [
     "January",
@@ -37,18 +41,17 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
   ];
 
   /* ============================
-        DATE PICKER
+        GET VALID MONTHS
+     (Prevent Past Months)
   ============================ */
-  Future<void> pickDueDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-      lastDate: DateTime(2100),
-    );
+  List<String> getValidMonths() {
+    int currentYear = now.year;
+    int selectedYearInt = int.parse(selectedYear);
 
-    if (picked != null) {
-      dueDateController.text = DateFormat('dd-MM-yyyy').format(picked);
+    if (selectedYearInt == currentYear) {
+      return months.sublist(now.month - 1);
+    } else {
+      return months;
     }
   }
 
@@ -58,7 +61,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
   Future<void> generateBills() async {
     if (selectedMonth == null ||
         amountController.text.isEmpty ||
-        dueDateController.text.isEmpty) {
+        selectedDueDay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please fill all fields"),
@@ -68,6 +71,23 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
       return;
     }
 
+    final amount = double.tryParse(amountController.text);
+
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter valid amount"),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    int monthIndex = months.indexOf(selectedMonth!) + 1;
+    int yearInt = int.parse(selectedYear);
+
+    selectedDueDate = DateTime(yearInt, monthIndex, selectedDueDay!);
+
     final monthValue = "$selectedMonth $selectedYear";
 
     setState(() => loading = true);
@@ -76,8 +96,8 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
       "/maintenance/generate",
       {
         "month": monthValue,
-        "amount": amountController.text,
-        "dueDate": dueDateController.text,
+        "amount": amount,
+        "dueDate": selectedDueDate!.toIso8601String(),
       },
     );
 
@@ -90,13 +110,14 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
 
       setState(() {
         selectedMonth = null;
+        selectedDueDay = null;
         amountController.clear();
-        dueDateController.clear();
+        selectedDueDate = null;
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response["message"] ?? "Failed to generate bills"),
+          content: Text(response?["message"] ?? "Failed to generate bills"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -104,7 +125,15 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
   }
 
   @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final validMonths = getValidMonths();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -133,14 +162,14 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
               ),
               const SizedBox(height: 40),
 
-              /* ================= MONTH DROPDOWN ================= */
+              /* ================= MONTH ================= */
               DropdownButtonFormField<String>(
                 value: selectedMonth,
                 decoration: const InputDecoration(
                   labelText: "Select Month",
                   prefixIcon: Icon(Icons.calendar_month),
                 ),
-                items: months.map((month) {
+                items: validMonths.map((month) {
                   return DropdownMenuItem(
                     value: month,
                     child: Text(month),
@@ -154,7 +183,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              /* ================= YEAR DROPDOWN ================= */
+              /* ================= YEAR ================= */
               DropdownButtonFormField<String>(
                 value: selectedYear,
                 decoration: const InputDecoration(
@@ -171,6 +200,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
                 onChanged: (value) {
                   setState(() {
                     selectedYear = value!;
+                    selectedMonth = null;
                   });
                 },
               ),
@@ -187,15 +217,25 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
               ),
               const SizedBox(height: 20),
 
-              /* ================= DATE PICKER ================= */
-              TextField(
-                controller: dueDateController,
-                readOnly: true,
-                onTap: pickDueDate,
+              /* ================= DUE DATE DAY ================= */
+              DropdownButtonFormField<int>(
+                value: selectedDueDay,
                 decoration: const InputDecoration(
-                  labelText: "Select Due Date",
+                  labelText: "Select Due Date (1-10)",
                   prefixIcon: Icon(Icons.event),
                 ),
+                items: List.generate(10, (index) {
+                  int day = index + 1;
+                  return DropdownMenuItem(
+                    value: day,
+                    child: Text(day.toString()),
+                  );
+                }),
+                onChanged: (value) {
+                  setState(() {
+                    selectedDueDay = value;
+                  });
+                },
               ),
               const SizedBox(height: 40),
               SizedBox(

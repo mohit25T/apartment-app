@@ -84,11 +84,11 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField(
-              value: priority,
+              //value: priority,
               items: const [
-                DropdownMenuItem(value: "LOW", child: Text("Low")),
-                DropdownMenuItem(value: "MEDIUM", child: Text("Medium")),
-                DropdownMenuItem(value: "HIGH", child: Text("High")),
+                DropdownMenuItem(value: "NORMAL", child: Text("Normal")),
+                DropdownMenuItem(value: "IMPORTANT", child: Text("Important")),
+                DropdownMenuItem(value: "URGENT", child: Text("Urgent")),
               ],
               onChanged: (val) => setState(() => priority = val!),
               decoration: const InputDecoration(

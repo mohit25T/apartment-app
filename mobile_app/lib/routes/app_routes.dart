@@ -10,6 +10,11 @@ import '../admin/invite_residant.dart';
 import '../admin/invite_guard.dart';
 import '../admin/society_residents_guards_screen.dart';
 import '../admin/generate_maintenance_screen.dart';
+import '../complaint/complaint_admin_screen.dart';
+import '../complaint/complaint_create_screen.dart';
+import '../complaint/complaint_my_screen.dart';
+import '../notice/notice_list_screen.dart';
+import '../notice/notice_create_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/change_email_screen.dart';
 import '../profile/change_mobile_screen.dart';
@@ -54,4 +59,9 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/invite-tenant': (context) => const InviteTenantScreen(),
   '/pending-tenants': (context) => const AdminPendingTenantsScreen(),
   '/my-tenant': (context) => const ResidentMyTenantScreen(),
+  '/complaint-create': (context) => const ComplaintCreateScreen(),
+  '/my-complaints': (context) => const ComplaintMyScreen(),
+  '/notices': (context) => const NoticeListScreen(),
+  '/admin-complaints': (context) => const ComplaintAdminScreen(),
+  '/create-notice': (context) => const NoticeCreateScreen(),
 };

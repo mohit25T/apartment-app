@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
@@ -21,7 +20,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   String? selectedCompany;
   String? parcelType;
 
-  File? deliveryImage;
+  XFile? deliveryImage; // ✅ Changed
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController mobileController = TextEditingController();
@@ -51,9 +50,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
     final response = await ApiService.get("/visitors/flats");
 
     if (response is List) {
-      setState(() {
-        flats = response;
-      });
+      flats = response;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -70,11 +67,12 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
         PICK IMAGE
   ============================ */
   Future<void> pickImage() async {
-    final XFile? picked = await _picker.pickImage(source: ImageSource.camera);
+    final XFile? picked =
+        await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
 
     if (picked != null) {
       setState(() {
-        deliveryImage = File(picked.path);
+        deliveryImage = picked;
       });
     }
   }
@@ -116,7 +114,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
         "deliveryCompany": selectedCompany,
         "parcelType": parcelType,
       },
-      file: deliveryImage,
+      xFiles: [deliveryImage!], // ✅ Changed
       fileFieldName: "visitorPhoto",
     );
 
@@ -152,9 +150,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text("Delivery Entry"),
-        centerTitle: true,
         backgroundColor: AppColors.primary,
-        elevation: 0,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
@@ -198,8 +194,8 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                             )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                deliveryImage!,
+                              child: Image.network(
+                                deliveryImage!.path,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -208,7 +204,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
                   const SizedBox(height: 24),
 
-                  /// FLAT SELECT
                   _buildDropdown(
                     value: selectedFlat,
                     hint: "Select Flat",
@@ -224,7 +219,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
                   const SizedBox(height: 20),
 
-                  /// DELIVERY COMPANY
                   _buildDropdown(
                     value: selectedCompany,
                     hint: "Delivery Company",
@@ -237,7 +231,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
                   const SizedBox(height: 20),
 
-                  /// DELIVERY PERSON MOBILE
                   TextField(
                     controller: mobileController,
                     keyboardType: TextInputType.phone,
@@ -256,7 +249,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
                   const SizedBox(height: 20),
 
-                  /// PARCEL TYPE
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Parcel Type (optional)",
@@ -285,16 +277,10 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                             borderRadius: BorderRadius.circular(12)),
                       ),
                       child: loading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child:
-                                  WalkingLoader(size: 24, color: Colors.white),
-                            )
+                          ? const WalkingLoader(size: 24, color: Colors.white)
                           : const Text(
                               "Create Delivery Entry",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
+                              style: TextStyle(fontSize: 16),
                             ),
                     ),
                   )

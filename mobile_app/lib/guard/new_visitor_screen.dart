@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
@@ -20,7 +20,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
   List flats = [];
   String? selectedFlat;
 
-  File? visitorImage;
+  XFile? visitorImage; // 🔥 CHANGED
 
   final ImagePicker _picker = ImagePicker();
 
@@ -30,7 +30,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
   final TextEditingController vehicleController = TextEditingController();
 
   /* ============================
-      PICK IMAGE FROM CAMERA
+      PICK IMAGE (Camera Safe)
   ============================ */
   Future<void> pickImage() async {
     final XFile? picked =
@@ -38,7 +38,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
 
     if (picked != null) {
       setState(() {
-        visitorImage = File(picked.path);
+        visitorImage = picked;
       });
     }
   }
@@ -52,16 +52,14 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
     final response = await ApiService.get("/visitors/flats");
 
     if (response is List) {
-      setState(() {
-        flats = response;
-      });
+      flats = response;
     }
 
     setState(() => loading = false);
   }
 
   /* ============================
-      CREATE VISITOR ENTRY WITH IMAGE
+      SUBMIT VISITOR
   ============================ */
   Future<void> submitVisitor() async {
     if (loading) return;
@@ -89,8 +87,8 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
         "vehicleNo": vehicleController.text.trim(),
         "entryType": "VISITOR",
       },
-      file: visitorImage,
-      fileFieldName: "photo", // must match backend field
+      xFiles: [visitorImage!], // 🔥 CHANGED
+      fileFieldName: "photo",
     );
 
     setState(() => loading = false);
@@ -132,9 +130,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text("New Visitor Entry"),
-        centerTitle: true,
         backgroundColor: AppColors.primary,
-        elevation: 0,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
@@ -144,9 +140,6 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
     );
   }
 
-  /* ============================
-        FLAT SELECTION
-  ============================ */
   Widget flatSelection() {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -162,10 +155,9 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
 
         return InkWell(
           onTap: () {
-            setState(() {
-              selectedFlat = flatNo;
-              flatSelected = true;
-            });
+            selectedFlat = flatNo;
+            flatSelected = true;
+            setState(() {});
           },
           child: Container(
             decoration: BoxDecoration(
@@ -187,9 +179,6 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
     );
   }
 
-  /* ============================
-        VISITOR FORM
-  ============================ */
   Widget visitorForm() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -201,7 +190,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
               radius: 55,
               backgroundColor: AppColors.primary.withOpacity(0.1),
               backgroundImage:
-                  visitorImage != null ? FileImage(visitorImage!) : null,
+                  visitorImage != null ? NetworkImage(visitorImage!.path) : null,
               child: visitorImage == null
                   ? const Icon(Icons.camera_alt,
                       size: 35, color: AppColors.primary)

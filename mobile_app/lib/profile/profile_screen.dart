@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -48,7 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /* ===============================
-     📸 IMAGE OPTIONS BOTTOM SHEET
+     📸 IMAGE OPTIONS
   =============================== */
   void _showImageOptions() {
     showModalBottomSheet(
@@ -97,11 +96,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /* ===============================
-     📤 UPLOAD IMAGE
+     📤 UPLOAD IMAGE (FIXED)
   =============================== */
   Future<void> _pickAndUploadImage(ImageSource source) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source, imageQuality: 70);
+    final XFile? pickedFile =
+        await picker.pickImage(source: source, imageQuality: 70);
 
     if (pickedFile == null) return;
 
@@ -110,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final response = await ApiService.multipart(
       "/users/upload-profile-photo",
       {},
-      file: File(pickedFile.path),
+      xFiles: [pickedFile], // ✅ PWA + WEB SAFE
       fileFieldName: "image",
     );
 
@@ -126,8 +126,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _loadProfile();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to upload profile photo"),
+        SnackBar(
+          content:
+              Text(response?["message"] ?? "Failed to upload profile photo"),
           backgroundColor: Colors.red,
         ),
       );
@@ -162,6 +163,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /* ===============================
+     SUPPORT LINKS
+  =============================== */
   final String supportPhone = "tel:+917043622519";
   final String supportWhatsApp =
       "whatsapp://send?phone=917043622519&text=Hi%2C%20I%27m%20facing%20an%20issue%20with%20my%20account.";
@@ -181,6 +185,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
   }
 
+  /* ===============================
+     LOGOUT
+  =============================== */
   Future<void> _logout() async {
     try {
       await ApiService.post("/auth/logout", {});
