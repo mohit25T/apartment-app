@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/resident/resident_dashboard.dart';
 import '../core/storage/role_storage.dart';
 import '../core/navigation/animation_navigation.dart';
@@ -18,30 +19,70 @@ class _AdminDashboardState extends State<AdminDashboard> {
   String? profileImage;
   bool loadingProfile = true;
 
+  static const String profileCacheKey = "ADMIN_PROFILE_IMAGE";
+
   @override
   void initState() {
     super.initState();
     loadRoles();
+    loadCachedProfile();
     fetchProfile();
   }
 
   Future<void> loadRoles() async {
     final data = await RoleStorage.getRoles();
+    if (!mounted) return;
+
     setState(() {
       roles = data;
     });
   }
 
+  /* ===============================
+     LOAD CACHED PROFILE IMAGE
+  =============================== */
+
+  Future<void> loadCachedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedImage = prefs.getString(profileCacheKey);
+
+    if (cachedImage != null && mounted) {
+      setState(() {
+        profileImage = cachedImage;
+        loadingProfile = false;
+      });
+    }
+  }
+
+  /* ===============================
+     FETCH PROFILE FROM API
+  =============================== */
+
   Future<void> fetchProfile() async {
-    setState(() => loadingProfile = true);
+    try {
+      final response = await ApiService.get("/users/profile");
 
-    final response = await ApiService.get("/users/profile");
+      if (response != null && response["user"] != null) {
+        final newImage = response["user"]["profileImage"];
 
-    if (response != null && response["user"] != null) {
-      profileImage = response["user"]["profileImage"];
+        if (newImage != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(profileCacheKey, newImage);
+
+          if (mounted) {
+            setState(() {
+              profileImage = newImage;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("PROFILE FETCH ERROR: $e");
     }
 
-    setState(() => loadingProfile = false);
+    if (mounted) {
+      setState(() => loadingProfile = false);
+    }
   }
 
   bool get canSwitch =>
@@ -194,13 +235,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Icons.campaign_rounded,
                       Colors.indigo,
                       "/notices",
-                    ),
-                    _buildActionCard(
-                      "Visitor\nLogs",
-                      Icons.history_edu_rounded,
-                      Colors.purpleAccent,
-                      "/society-visitors",
-                    ),
+                    )
                   ],
                 ),
               ],

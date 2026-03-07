@@ -87,7 +87,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   Color getStatusColor(String status) {
     if (status == "Paid") return Colors.green;
     if (status == "Pending") return Colors.orange;
-    return Colors.red; // Overdue
+    return Colors.red;
   }
 
   bool isDueInFiveDays(String? dueDateStr, String status) {
@@ -100,6 +100,95 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     final difference = dueDate.difference(today).inDays;
 
     return difference >= 0 && difference <= 5;
+  }
+
+  int getTotalAmount() {
+    int total = 0;
+    for (var bill in bills) {
+      total += (bill["amount"] ?? 0) as int;
+    }
+    return total;
+  }
+
+  int getPaidAmount() {
+    int total = 0;
+    for (var bill in bills) {
+      if (bill["status"] == "Paid") {
+        total += (bill["amount"] ?? 0) as int;
+      }
+    }
+    return total;
+  }
+
+  int getPendingAmount() {
+    int total = 0;
+    for (var bill in bills) {
+      if (bill["status"] != "Paid") {
+        total += (bill["amount"] ?? 0) as int;
+      }
+    }
+    return total;
+  }
+
+  Widget summaryCard() {
+    if (bills.isEmpty) return const SizedBox();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            "Maintenance Summary",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  Text("₹${getTotalAmount()}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text("Total"),
+                ],
+              ),
+              Column(
+                children: [
+                  Text("₹${getPaidAmount()}",
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green)),
+                  const Text("Paid"),
+                ],
+              ),
+              Column(
+                children: [
+                  Text("₹${getPendingAmount()}",
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red)),
+                  const Text("Pending"),
+                ],
+              ),
+            ],
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -122,9 +211,13 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
-                itemCount: bills.length + (hasMore ? 1 : 0),
+                itemCount: bills.length + (hasMore ? 2 : 1),
                 itemBuilder: (context, index) {
-                  if (index == bills.length) {
+                  if (index == 0) {
+                    return summaryCard();
+                  }
+
+                  if (index == bills.length + 1) {
                     return const Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(
@@ -133,7 +226,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     );
                   }
 
-                  final bill = bills[index];
+                  final bill = bills[index - 1];
                   final status = bill["status"] ?? "Pending";
                   final dueDate = bill["dueDate"];
                   final paidAt = bill["paidAt"];

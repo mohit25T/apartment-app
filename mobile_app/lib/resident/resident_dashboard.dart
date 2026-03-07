@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/admin/admin_dashboard.dart';
 import 'package:mobile_app/core/navigation/animation_navigation.dart';
 import '../core/storage/role_storage.dart';
@@ -18,30 +19,70 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
   String? profileImage;
   bool loadingProfile = true;
 
+  static const String profileCacheKey = "RESIDENT_PROFILE_IMAGE";
+
   @override
   void initState() {
     super.initState();
     loadRoles();
+    loadCachedProfile();
     fetchProfile();
   }
 
   Future<void> loadRoles() async {
     final data = await RoleStorage.getRoles();
+    if (!mounted) return;
+
     setState(() {
       roles = data;
     });
   }
 
+  /* ===============================
+     LOAD CACHED PROFILE IMAGE
+  =============================== */
+
+  Future<void> loadCachedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedImage = prefs.getString(profileCacheKey);
+
+    if (cachedImage != null && mounted) {
+      setState(() {
+        profileImage = cachedImage;
+        loadingProfile = false;
+      });
+    }
+  }
+
+  /* ===============================
+     FETCH PROFILE FROM API
+  =============================== */
+
   Future<void> fetchProfile() async {
-    setState(() => loadingProfile = true);
+    try {
+      final response = await ApiService.get("/users/profile");
 
-    final response = await ApiService.get("/users/profile");
+      if (response != null && response["success"] == true) {
+        final newImage = response["user"]["profileImage"];
 
-    if (response != null && response["success"] == true) {
-      profileImage = response["user"]["profileImage"];
+        if (newImage != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(profileCacheKey, newImage);
+
+          if (mounted) {
+            setState(() {
+              profileImage = newImage;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("PROFILE FETCH ERROR: $e");
     }
 
-    setState(() => loadingProfile = false);
+    if (mounted) {
+      setState(() => loadingProfile = false);
+    }
   }
 
   bool get canSwitch =>
@@ -126,8 +167,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               children: [
                 if (canSwitch) _buildSwitchModeCard(),
                 const SizedBox(height: 20),
-
-                // ✅ FLAT MANAGEMENT SECTION (OWNER ONLY)
                 if (isOwner) ...[
                   const Text(
                     "Flat Management",
@@ -162,7 +201,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   ),
                   const SizedBox(height: 24),
                 ],
-
                 const Text(
                   "Notifications",
                   style: TextStyle(
@@ -180,7 +218,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   "Action Required",
                 ),
                 const SizedBox(height: 24),
-
                 const Text(
                   "My Features",
                   style: TextStyle(

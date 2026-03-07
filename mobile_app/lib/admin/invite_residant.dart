@@ -18,7 +18,8 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
 
   bool loading = false;
 
-  String selectedRole = "OWNER"; // ✅ Default role
+  // Admin can invite only OWNER
+  String selectedRole = "OWNER";
 
   Future<void> inviteResident() async {
     if (nameController.text.isEmpty ||
@@ -43,7 +44,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
         "email": emailController.text.trim().toLowerCase(),
         "mobile": mobileController.text.trim(),
         "flatNo": flatController.text.trim(),
-        "role": selectedRole, // ✅ NEW
+        "role": selectedRole,
       },
     );
 
@@ -61,7 +62,6 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
       emailController.clear();
       mobileController.clear();
       flatController.clear();
-      setState(() => selectedRole = "OWNER");
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -97,7 +97,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Invite Flat Member",
+              "Invite Flat Owner",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -106,23 +106,25 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Send an invite to an Owner or Tenant.",
+              "Admins can invite only flat owners. Owners can later add tenants.",
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
-
             _buildTextField(nameController, "Full Name", Icons.person_outline),
             const SizedBox(height: 16),
-
             _buildTextField(
-                emailController, "Email Address", Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress),
+              emailController,
+              "Email Address",
+              Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+            ),
             const SizedBox(height: 16),
-
-            _buildTextField(flatController, "Flat Number (e.g. A-203)",
-                Icons.home_outlined),
+            _buildTextField(
+              flatController,
+              "Flat Number (e.g. A-203)",
+              Icons.home_outlined,
+            ),
             const SizedBox(height: 16),
-
             _buildTextField(
               mobileController,
               "Mobile Number",
@@ -130,34 +132,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               keyboardType: TextInputType.phone,
               maxLength: 10,
             ),
-            const SizedBox(height: 16),
-
-            // ✅ NEW ROLE DROPDOWN
-            DropdownButtonFormField<String>(
-              value: selectedRole,
-              decoration: const InputDecoration(
-                labelText: "Select Role",
-                prefixIcon: Icon(Icons.badge_outlined),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: "OWNER",
-                  child: Text("Owner"),
-                ),
-                DropdownMenuItem(
-                  value: "TENANT",
-                  child: Text("Tenant"),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  selectedRole = value!;
-                });
-              },
-            ),
-
             const SizedBox(height: 40),
-
             SizedBox(
               width: double.infinity,
               height: 50,

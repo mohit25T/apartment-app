@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -17,10 +20,48 @@ class _ResidentPendingVisitorsScreenState
   bool actionLoading = false;
   List visitors = [];
 
+  static const String cacheKey = "resident_pending_visitors_cache";
+
   @override
   void initState() {
     super.initState();
-    fetchVisitors();
+    loadCachedVisitors(); // load cache first
+    fetchVisitors(); // refresh from API
+  }
+
+  /* ============================
+        LOAD CACHE
+  ============================ */
+  Future<void> loadCachedVisitors() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(cacheKey);
+
+    if (cached != null) {
+      final decoded = jsonDecode(cached);
+
+      if (mounted) {
+        setState(() {
+          visitors = decoded;
+          loading = false;
+        });
+      }
+    }
+  }
+
+  /* ============================
+        SAVE CACHE
+  ============================ */
+  Future<void> saveCache(List data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(cacheKey, jsonEncode(data));
+  }
+
+  /* ============================
+        CLEAR CACHE
+  ============================ */
+  Future<void> clearCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(cacheKey);
   }
 
   /* ============================
@@ -38,6 +79,8 @@ class _ResidentPendingVisitorsScreenState
         setState(() {
           visitors = response["data"];
         });
+
+        await saveCache(visitors); // save to cache
       } else {
         visitors = [];
       }
@@ -65,7 +108,9 @@ class _ResidentPendingVisitorsScreenState
       ),
     );
 
+    await clearCache();
     await fetchVisitors();
+
     setState(() => actionLoading = false);
   }
 
@@ -86,7 +131,9 @@ class _ResidentPendingVisitorsScreenState
       ),
     );
 
+    await clearCache();
     await fetchVisitors();
+
     setState(() => actionLoading = false);
   }
 

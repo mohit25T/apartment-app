@@ -14,6 +14,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   double _logoOpacity = 0.0;
   double _appOpacity = 0.0;
   double _userOpacity = 0.0;
+
   String? _userName;
   bool _showUser = false;
 
@@ -24,52 +25,59 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Future<void> _startAnimation() async {
-    // 1. Fade In Logo
+    // Fade In Logo
     await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
     setState(() => _logoOpacity = 1.0);
 
-    // 2. Fade In App Name
+    // Fade In App Name
     await Future.delayed(const Duration(milliseconds: 800));
+
+    if (!mounted) return;
     setState(() => _appOpacity = 1.0);
 
-    // 3. Check Auth & Get User Name
+    // Check Auth
     await Future.delayed(const Duration(milliseconds: 1000));
     await _checkAuth();
   }
 
   Future<void> _checkAuth() async {
     final prefs = await SharedPreferences.getInstance();
+
     final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
     final String? role = prefs.getString('role');
 
     if (isLoggedIn && role != null) {
-      // 4. Get User Name
       final name = await UserStorage.getName();
-      
+
       if (name != null && name.isNotEmpty) {
+        if (!mounted) return;
+
         setState(() {
           _userName = name;
           _showUser = true;
         });
-        
-        // 5. Fade In User Name
+
         await Future.delayed(const Duration(milliseconds: 200));
+
+        if (!mounted) return;
         setState(() => _userOpacity = 1.0);
-        
-        // 6. Wait and Navigate
+
         await Future.delayed(const Duration(milliseconds: 1500));
         _navigate(role);
       } else {
-        // No name found, just navigate
         _navigate(role);
       }
     } else {
-      // Not logged in -> Login Screen
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
   void _navigate(String role) {
+    if (!mounted) return;
+
     if (role == 'admin') {
       Navigator.pushReplacementNamed(context, '/admin');
     } else if (role == 'resident') {
@@ -114,6 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
 
             // App Name
@@ -123,7 +132,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               curve: Curves.easeOut,
               child: Column(
                 children: [
-                   Text(
+                  Text(
                     "Building Management",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -143,7 +152,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
             const SizedBox(height: 60),
 
-            // User Name
+            // Welcome User
             if (_showUser)
               AnimatedOpacity(
                 duration: const Duration(seconds: 1),

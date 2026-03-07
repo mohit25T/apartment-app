@@ -5,7 +5,6 @@ import '../auth/login_screen.dart';
 import '../auth/auth_check_screen.dart';
 import '../auth/otp_screen.dart';
 import '../admin/admin_dashboard.dart';
-import '../admin/society_visitor_log_screen.dart';
 import '../admin/invite_residant.dart';
 import '../admin/invite_guard.dart';
 import '../admin/society_residents_guards_screen.dart';
@@ -47,7 +46,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/preapproved-guest': (context) => const PreApprovedGuestScreen(),
   '/guest-otp': (context) => const GuestOtpScreen(),
   '/profile': (context) => const ProfileScreen(),
-  '/society-visitors': (context) => const SocietyVisitorLogsScreen(),
   '/resident-visitor-history': (context) =>
       const ResidentVisitorHistoryScreen(),
   '/change-email': (context) => const ChangeEmailScreen(),

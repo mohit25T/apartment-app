@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -21,10 +24,13 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
 
   final ScrollController _scrollController = ScrollController();
 
+  static const String cacheKey = "resident_visitors_cache";
+
   @override
   void initState() {
     super.initState();
-    loadVisitors();
+    loadCachedVisitors(); // 🔥 Load cached visitors first
+    loadVisitors(); // 🔥 Then refresh from API
     _scrollController.addListener(_scrollListener);
   }
 
@@ -36,6 +42,39 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
       loadMoreVisitors();
     }
   }
+
+  /* ===============================
+     LOAD CACHED VISITORS
+  =============================== */
+
+  Future<void> loadCachedVisitors() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(cacheKey);
+
+    if (cached != null) {
+      final decoded = jsonDecode(cached);
+
+      if (mounted) {
+        setState(() {
+          visitors = decoded;
+          loading = false;
+        });
+      }
+    }
+  }
+
+  /* ===============================
+     SAVE CACHE
+  =============================== */
+
+  Future<void> saveVisitorsCache(List data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(cacheKey, jsonEncode(data));
+  }
+
+  /* ===============================
+     LOAD VISITORS FROM API
+  =============================== */
 
   Future<void> loadVisitors() async {
     setState(() {
@@ -53,10 +92,16 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         hasMore = response["hasMore"] ?? false;
         loading = false;
       });
+
+      await saveVisitorsCache(visitors); // 🔥 Save to cache
     } else {
       setState(() => loading = false);
     }
   }
+
+  /* ===============================
+     LOAD MORE VISITORS
+  =============================== */
 
   Future<void> loadMoreVisitors() async {
     if (!hasMore) return;
@@ -74,15 +119,25 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         hasMore = response["hasMore"] ?? false;
         isLoadingMore = false;
       });
+
+      await saveVisitorsCache(visitors); // 🔥 Update cache
     } else {
       setState(() => isLoadingMore = false);
     }
   }
 
+  /* ===============================
+     ENTER VISITOR
+  =============================== */
+
   Future<void> enter(String id) async {
     await ApiService.put("/visitors/enter/$id", {});
     loadVisitors();
   }
+
+  /* ===============================
+     EXIT VISITOR
+  =============================== */
 
   Future<void> exitVisitor(String id) async {
     await ApiService.put("/visitors/exit/$id", {});
@@ -146,7 +201,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
 
                     final v = visitors[index];
                     final status = v["status"];
-                    final photoUrl = v["visitorPhoto"]; // 👈 IMAGE FIELD
+                    final photoUrl = v["visitorPhoto"];
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),

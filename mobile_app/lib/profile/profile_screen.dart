@@ -31,24 +31,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() => isLoading = true);
 
+    /* =========================
+       LOAD FROM LOCAL STORAGE
+    ========================= */
+
+    final cachedUser = await UserStorage.getFullUser();
+
+    if (cachedUser != null) {
+      setState(() {
+        user = cachedUser;
+        isLoading = false;
+      });
+    }
+
+    /* =========================
+       FETCH FROM API
+    ========================= */
+
     final response = await ApiService.get("/users/profile");
 
     if (response != null && response["success"] == true) {
-      setState(() {
-        user = response["user"];
-        isLoading = false;
-      });
+      final freshUser = response["user"];
+
+      await UserStorage.saveFullUser(freshUser);
+
+      if (mounted) {
+        setState(() {
+          user = freshUser;
+          isLoading = false;
+        });
+      }
     } else {
-      setState(() {
-        user = null;
-        isLoading = false;
-      });
+      if (cachedUser == null) {
+        setState(() {
+          user = null;
+          isLoading = false;
+        });
+      }
     }
   }
 
   /* ===============================
      📸 IMAGE OPTIONS
   =============================== */
+
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
@@ -96,10 +122,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /* ===============================
-     📤 UPLOAD IMAGE (FIXED)
+     📤 UPLOAD IMAGE
   =============================== */
+
   Future<void> _pickAndUploadImage(ImageSource source) async {
     final picker = ImagePicker();
+
     final XFile? pickedFile =
         await picker.pickImage(source: source, imageQuality: 70);
 
@@ -110,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final response = await ApiService.multipart(
       "/users/upload-profile-photo",
       {},
-      xFiles: [pickedFile], // ✅ PWA + WEB SAFE
+      xFiles: [pickedFile],
       fileFieldName: "image",
     );
 
@@ -123,7 +151,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      _loadProfile();
+
+      await _loadProfile();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -138,6 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /* ===============================
      🗑 REMOVE IMAGE
   =============================== */
+
   Future<void> _removeProfileImage() async {
     setState(() => isUploading = true);
 
@@ -152,7 +182,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      _loadProfile();
+
+      await _loadProfile();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -166,13 +197,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /* ===============================
      SUPPORT LINKS
   =============================== */
+
   final String supportPhone = "tel:+917043622519";
+
   final String supportWhatsApp =
       "whatsapp://send?phone=917043622519&text=Hi%2C%20I%27m%20facing%20an%20issue%20with%20my%20account.";
+
   final String supportEmail = "mailto:mohittopiya2564@gmail.com";
 
   Future<void> openLink(String url) async {
     final uri = Uri.parse(url);
+
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Unable to open support option")),
@@ -182,12 +217,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _navigateAndRefresh(String route) async {
     await Navigator.pushNamed(context, route);
-    _loadProfile();
+
+    await _loadProfile();
   }
 
   /* ===============================
      LOGOUT
   =============================== */
+
   Future<void> _logout() async {
     try {
       await ApiService.post("/auth/logout", {});
@@ -196,6 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final prefs = await SharedPreferences.getInstance();
+
     await prefs.remove('isLoggedIn');
     await prefs.remove('role');
     await prefs.remove('admin_mode');
@@ -291,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           GestureDetector(
             onTap: _showImageOptions,
             child: Stack(
-              clipBehavior: Clip.none, // 🔥 VERY IMPORTANT
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
                 CircleAvatar(

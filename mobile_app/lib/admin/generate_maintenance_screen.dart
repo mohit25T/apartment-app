@@ -40,10 +40,6 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
     "December",
   ];
 
-  /* ============================
-        GET VALID MONTHS
-     (Prevent Past Months)
-  ============================ */
   List<String> getValidMonths() {
     int currentYear = now.year;
     int selectedYearInt = int.parse(selectedYear);
@@ -55,9 +51,6 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
     }
   }
 
-  /* ============================
-        GENERATE BILLS
-  ============================ */
   Future<void> generateBills() async {
     if (selectedMonth == null ||
         amountController.text.isEmpty ||
@@ -68,6 +61,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+
       return;
     }
 
@@ -80,6 +74,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+
       return;
     }
 
@@ -124,6 +119,52 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
     }
   }
 
+  Widget previewCard() {
+    if (selectedMonth == null ||
+        selectedDueDay == null ||
+        amountController.text.isEmpty) {
+      return const SizedBox();
+    }
+
+    int monthIndex = months.indexOf(selectedMonth!) + 1;
+    int yearInt = int.parse(selectedYear);
+
+    DateTime previewDate = DateTime(yearInt, monthIndex, selectedDueDay!);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 25),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Bill Preview",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text("Month: $selectedMonth $selectedYear"),
+          Text("Amount: ₹${amountController.text}"),
+          Text(
+            "Due Date: ${DateFormat('dd MMM yyyy').format(previewDate)}",
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     amountController.dispose();
@@ -161,8 +202,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-
-              /* ================= MONTH ================= */
+              previewCard(),
               DropdownButtonFormField<String>(
                 value: selectedMonth,
                 decoration: const InputDecoration(
@@ -182,8 +222,6 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
                 },
               ),
               const SizedBox(height: 20),
-
-              /* ================= YEAR ================= */
               DropdownButtonFormField<String>(
                 value: selectedYear,
                 decoration: const InputDecoration(
@@ -205,8 +243,6 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
                 },
               ),
               const SizedBox(height: 20),
-
-              /* ================= AMOUNT ================= */
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
@@ -214,10 +250,11 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
                   labelText: "Amount",
                   prefixIcon: Icon(Icons.currency_rupee),
                 ),
+                onChanged: (_) {
+                  setState(() {});
+                },
               ),
               const SizedBox(height: 20),
-
-              /* ================= DUE DATE DAY ================= */
               DropdownButtonFormField<int>(
                 value: selectedDueDay,
                 decoration: const InputDecoration(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -23,12 +26,19 @@ class _ResidentVisitorHistoryScreenState
   List visitors = [];
   final ScrollController _scrollController = ScrollController();
 
+  static const String cacheKey = "resident_visitor_history_cache";
+
   @override
   void initState() {
     super.initState();
-    loadVisitorHistory();
+    loadCachedHistory(); // load cached data first
+    loadVisitorHistory(); // refresh from API
     _scrollController.addListener(_scrollListener);
   }
+
+  /* ============================
+      SCROLL LISTENER
+  ============================ */
 
   void _scrollListener() {
     if (_scrollController.position.pixels >=
@@ -38,6 +48,39 @@ class _ResidentVisitorHistoryScreenState
       loadMoreVisitors();
     }
   }
+
+  /* ============================
+      LOAD CACHE
+  ============================ */
+
+  Future<void> loadCachedHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(cacheKey);
+
+    if (cached != null) {
+      final decoded = jsonDecode(cached);
+
+      if (mounted) {
+        setState(() {
+          visitors = decoded;
+          loading = false;
+        });
+      }
+    }
+  }
+
+  /* ============================
+      SAVE CACHE
+  ============================ */
+
+  Future<void> saveCache(List data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(cacheKey, jsonEncode(data));
+  }
+
+  /* ============================
+      LOAD VISITOR HISTORY
+  ============================ */
 
   Future<void> loadVisitorHistory() async {
     setState(() {
@@ -52,10 +95,16 @@ class _ResidentVisitorHistoryScreenState
     if (response != null && response["success"] == true) {
       visitors = response["visitors"] ?? [];
       hasMore = response["hasMore"] ?? false;
+
+      await saveCache(visitors); // save cache
     }
 
     setState(() => loading = false);
   }
+
+  /* ============================
+      LOAD MORE VISITORS
+  ============================ */
 
   Future<void> loadMoreVisitors() async {
     if (!hasMore) return;
@@ -70,10 +119,16 @@ class _ResidentVisitorHistoryScreenState
     if (response != null && response["success"] == true) {
       visitors.addAll(response["visitors"] ?? []);
       hasMore = response["hasMore"] ?? false;
+
+      await saveCache(visitors); // update cache
     }
 
     setState(() => isLoadingMore = false);
   }
+
+  /* ============================
+      IMAGE VIEWER
+  ============================ */
 
   void showFullImage(String imageUrl) {
     showDialog(
@@ -95,6 +150,10 @@ class _ResidentVisitorHistoryScreenState
     _scrollController.dispose();
     super.dispose();
   }
+
+  /* ============================
+      UI
+  ============================ */
 
   @override
   Widget build(BuildContext context) {
@@ -236,6 +295,10 @@ class _ResidentVisitorHistoryScreenState
     );
   }
 
+  /* ============================
+      INFO ROW
+  ============================ */
+
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
@@ -250,6 +313,10 @@ class _ResidentVisitorHistoryScreenState
       ],
     );
   }
+
+  /* ============================
+      DATE FORMAT
+  ============================ */
 
   String _formatDate(String? date) {
     if (date == null) return "";

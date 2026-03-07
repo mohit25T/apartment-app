@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'firebase_options.dart'; // 👈 VERY IMPORTANT
+import 'firebase_options.dart';
 
 import 'core/theme/app_theme.dart';
 import 'routes/app_routes.dart';
@@ -26,15 +26,21 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // ✅ Local notifications
   LocalNotificationService.initialize();
-  NotificationService.initialize();
 
+  // ✅ FCM init (token + navigation setup)
+  await NotificationService.initFcm();
+
+  // ✅ Background handler
   FirebaseMessaging.onBackgroundMessage(
     _firebaseMessagingBackgroundHandler,
   );
 
+  // ✅ Foreground notifications
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     final notification = message.notification;
+
     if (notification != null) {
       LocalNotificationService.showNotification(
         notification.title ?? '',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
@@ -14,22 +15,60 @@ class _GuardDashboardState extends State<GuardDashboard> {
   String? profileImage;
   bool loadingProfile = true;
 
+  static const String profileCacheKey = "GUARD_PROFILE_IMAGE";
+
   @override
   void initState() {
     super.initState();
+    loadCachedProfile();
     fetchProfile();
   }
 
+  /* ===============================
+     LOAD CACHED PROFILE IMAGE
+  =============================== */
+
+  Future<void> loadCachedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedImage = prefs.getString(profileCacheKey);
+
+    if (cachedImage != null && mounted) {
+      setState(() {
+        profileImage = cachedImage;
+        loadingProfile = false;
+      });
+    }
+  }
+
+  /* ===============================
+     FETCH PROFILE FROM API
+  =============================== */
+
   Future<void> fetchProfile() async {
-    setState(() => loadingProfile = true);
+    try {
+      final response = await ApiService.get("/users/profile");
 
-    final response = await ApiService.get("/users/profile");
+      if (response != null && response["success"] == true) {
+        final newImage = response["user"]["profileImage"];
 
-    if (response != null && response["success"] == true) {
-      profileImage = response["user"]["profileImage"];
+        if (newImage != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(profileCacheKey, newImage);
+
+          if (mounted) {
+            setState(() {
+              profileImage = newImage;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("PROFILE FETCH ERROR: $e");
     }
 
-    setState(() => loadingProfile = false);
+    if (mounted) {
+      setState(() => loadingProfile = false);
+    }
   }
 
   @override

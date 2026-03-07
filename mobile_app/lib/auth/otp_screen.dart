@@ -46,10 +46,13 @@ class _OtpScreenState extends State<OtpScreen> {
 
     if (response != null && response["token"] != null) {
       // =================================
-      // 1️⃣ SAVE TOKEN
+      // 1️⃣ SAVE TOKENS
       // =================================
       await TokenStorage.saveToken(response["token"]);
 
+      if (response["refreshToken"] != null) {
+        await TokenStorage.saveRefreshToken(response["refreshToken"]);
+      }
       // =================================
       // 2️⃣ SAVE ROLES
       // =================================

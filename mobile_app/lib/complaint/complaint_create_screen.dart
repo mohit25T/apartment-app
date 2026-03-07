@@ -1,5 +1,5 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/material/dropdown.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
 import '../core/widgets/walking_loader.dart';
@@ -20,18 +20,31 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
   String priority = "MEDIUM";
 
   bool loading = false;
-  List<XFile> selectedImages = []; // ✅ FIXED
+  List<XFile> selectedImages = [];
 
   final ImagePicker _picker = ImagePicker();
 
-  /* ================= PICK IMAGES ================= */
+  /* ================= PICK IMAGE OPTIONS ================= */
 
-  Future<void> pickImages() async {
+  Future<void> pickFromGallery() async {
     final List<XFile> images = await _picker.pickMultiImage(imageQuality: 70);
 
-    setState(() {
-      selectedImages.addAll(images);
-    });
+    if (images.isNotEmpty) {
+      setState(() {
+        selectedImages.addAll(images);
+      });
+    }
+  }
+
+  Future<void> pickFromCamera() async {
+    final XFile? image =
+        await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+
+    if (image != null) {
+      setState(() {
+        selectedImages.add(image);
+      });
+    }
   }
 
   void removeImage(int index) {
@@ -60,7 +73,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
         "title": titleController.text.trim(),
         "description": descriptionController.text.trim(),
       },
-      xFiles: selectedImages.isNotEmpty ? selectedImages : null, // ✅ FIXED
+      xFiles: selectedImages.isNotEmpty ? selectedImages : null,
       fileFieldName: "images",
     );
 
@@ -68,9 +81,11 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
 
     if (response != null && response["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Complaint Submitted Successfully")),
+        const SnackBar(
+          content: Text("Complaint Submitted Successfully"),
+          backgroundColor: Colors.green,
+        ),
       );
-
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +128,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField(
-              // value: category,
+             // value: category,
               items: const [
                 DropdownMenuItem(value: "PLUMBING", child: Text("Plumbing")),
                 DropdownMenuItem(
@@ -124,9 +139,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                 DropdownMenuItem(value: "OTHER", child: Text("Other")),
               ],
               onChanged: (value) => setState(() => category = value!),
-              decoration: const InputDecoration(
-                labelText: "Category",
-              ),
+              decoration: const InputDecoration(labelText: "Category"),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField(
@@ -137,22 +150,33 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                 DropdownMenuItem(value: "HIGH", child: Text("High")),
               ],
               onChanged: (value) => setState(() => priority = value!),
-              decoration: const InputDecoration(
-                labelText: "Priority",
-              ),
+              decoration: const InputDecoration(labelText: "Priority"),
             ),
             const SizedBox(height: 20),
 
-            /// ADD IMAGES BUTTON
-            ElevatedButton.icon(
-              onPressed: pickImages,
-              icon: const Icon(Icons.image),
-              label: const Text("Add Images"),
+            /* IMAGE BUTTONS */
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: pickFromCamera,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text("Camera"),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: pickFromGallery,
+                    icon: const Icon(Icons.image),
+                    label: const Text("Gallery"),
+                  ),
+                ),
+              ],
             ),
-
             const SizedBox(height: 12),
 
-            /// IMAGE PREVIEW
+            /* IMAGE PREVIEW */
             if (selectedImages.isNotEmpty)
               SizedBox(
                 height: 110,
@@ -166,8 +190,8 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                           padding: const EdgeInsets.only(right: 8),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              selectedImages[index].path,
+                            child: Image.file(
+                              File(selectedImages[index].path),
                               width: 100,
                               fit: BoxFit.cover,
                             ),
@@ -194,22 +218,17 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
                   },
                 ),
               ),
-
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: loading ? null : submitComplaint,
                 child: loading
-                    ? const WalkingLoader(
-                        size: 40,
-                        color: Colors.white,
-                      )
+                    ? const WalkingLoader(size: 40, color: Colors.white)
                     : const Text("Submit Complaint"),
               ),
-            )
+            ),
           ],
         ),
       ),

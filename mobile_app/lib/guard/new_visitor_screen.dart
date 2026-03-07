@@ -95,7 +95,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
 
     if (response != null && response["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      const SnackBar(
           content: Text("Visitor entry created successfully"),
           backgroundColor: Colors.green,
         ),

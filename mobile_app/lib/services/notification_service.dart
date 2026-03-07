@@ -3,12 +3,14 @@ import 'package:flutter/foundation.dart';
 import '../core/navigation/navigation_service.dart';
 
 class NotificationService {
-  /// Cache token in memory
   static String? fcmToken;
 
-  /// ===============================
-  /// Get FCM token (SAFE)
-  /// ===============================
+  /// 🔥 Prevent double navigation
+  static bool openedFromNotification = false;
+
+  /* ===============================
+     🔐 GET TOKEN SAFE
+  =============================== */
   static Future<String?> getFcmTokenOnly() async {
     try {
       return await FirebaseMessaging.instance.getToken();
@@ -18,72 +20,111 @@ class NotificationService {
     }
   }
 
-  /// ===============================
-  /// 1️⃣ Init FCM (SAFE for installed APK)
-  /// ===============================
+  /* ===============================
+     1️⃣ INIT FCM
+  =============================== */
   static Future<void> initFcm() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // 🔐 Request permission
+    // Request permission
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    debugPrint(
-      '🔐 Notification permission: ${settings.authorizationStatus}',
-    );
+    debugPrint('🔐 Notification permission: ${settings.authorizationStatus}');
 
-    // ⚠️ Initial token MAY be null
     final token = await messaging.getToken();
     if (token != null) {
-      debugPrint("📱 FCM TOKEN (initial): $token");
+      debugPrint("📱 FCM TOKEN: $token");
       fcmToken = token;
-    } else {
-      debugPrint("⏳ FCM token not ready yet");
     }
 
-    // 🔄 This is the MOST IMPORTANT part
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
       debugPrint("🔄 FCM TOKEN REFRESHED: $newToken");
       fcmToken = newToken;
     });
+
+    _setupMessageHandlers();
   }
 
-  /// ===============================
-  /// 2️⃣ Notification navigation
-  /// ===============================
-  static void initialize() {
+  /* ===============================
+     2️⃣ SETUP MESSAGE HANDLERS
+  =============================== */
+  static void _setupMessageHandlers() {
+    // App opened from terminated state
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) {
+        debugPrint("🚀 Opened from terminated via notification");
         _handleNotificationNavigation(message);
       }
     });
 
+    // App opened from background
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      debugPrint("🚀 Opened from background via notification");
       _handleNotificationNavigation(message);
+    });
+
+    // Foreground message
+    FirebaseMessaging.onMessage.listen((message) {
+      debugPrint("📩 Foreground message received");
+      debugPrint("📦 Data: ${message.data}");
     });
   }
 
-  /// ===============================
-  /// 3️⃣ Handle navigation
-  /// ===============================
+  /* ===============================
+     3️⃣ HANDLE NAVIGATION
+  =============================== */
   static void _handleNotificationNavigation(RemoteMessage message) {
     final data = message.data;
 
-    final String? type = data['type'];
-    final String? visitorId = data['visitorId'];
+    debugPrint("🔔 Notification Clicked");
+    debugPrint("📦 Payload: $data");
 
-    debugPrint('🔔 Notification tapped');
-    debugPrint('➡️ Type: $type');
-    debugPrint('➡️ Visitor ID: $visitorId');
-
-    if (type == "VISITOR_ARRIVED" || type == "OTP_VERIFIED") {
-      navigatorKey.currentState?.pushNamed(
-        '/resident-visitors',
-        arguments: visitorId,
-      );
+    if (data.isEmpty) {
+      debugPrint("❌ No data payload found");
+      return;
     }
+
+    openedFromNotification = true;
+
+    final type = data['type'];
+
+    // Small delay ensures navigator is ready
+    Future.delayed(const Duration(milliseconds: 400), () {
+      switch (type) {
+        /* ================= VISITOR ================= */
+        case "VISITOR_ARRIVED":
+        case "OTP_VERIFIED":
+          navigatorKey.currentState?.pushReplacementNamed(
+            '/resident-visitors',
+            arguments: data['visitorId'],
+          );
+          break;
+
+        /* ================= COMPLAINT ================= */
+        case "COMPLAINT_CREATED":
+        case "COMPLAINT_UPDATED":
+          navigatorKey.currentState?.pushReplacementNamed(
+            '/complaints',
+            arguments: data['complaintId'],
+          );
+          break;
+
+        /* ================= MAINTENANCE ================= */
+        case "MAINTENANCE_GENERATED":
+        case "MAINTENANCE_PAID":
+          navigatorKey.currentState?.pushReplacementNamed(
+            '/maintenance',
+          );
+          break;
+
+        /* ================= DEFAULT ================= */
+        default:
+          navigatorKey.currentState?.pushReplacementNamed('/dashboard');
+      }
+    });
   }
 }
