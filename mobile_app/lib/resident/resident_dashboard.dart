@@ -6,6 +6,7 @@ import '../core/storage/role_storage.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
+import '../sos/resident_sos_screen.dart';
 
 class ResidentDashboard extends StatefulWidget {
   const ResidentDashboard({super.key});
@@ -38,10 +39,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     });
   }
 
-  /* ===============================
-     LOAD CACHED PROFILE IMAGE
-  =============================== */
-
   Future<void> loadCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedImage = prefs.getString(profileCacheKey);
@@ -54,27 +51,45 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     }
   }
 
-  /* ===============================
-     FETCH PROFILE FROM API
-  =============================== */
-
   Future<void> fetchProfile() async {
     try {
       final response = await ApiService.get("/users/profile");
 
-      if (response != null && response["success"] == true) {
-        final newImage = response["user"]["profileImage"];
+      if (response is Map && response["success"] == true) {
+        final user = response["user"];
 
+        final newImage = user?["profileImage"];
+        final wing = user?["wing"];
+        final flatNo = user?["flatNo"];
+
+        final prefs = await SharedPreferences.getInstance();
+
+        // Save profile image
         if (newImage != null) {
-          final prefs = await SharedPreferences.getInstance();
           await prefs.setString(profileCacheKey, newImage);
-
-          if (mounted) {
-            setState(() {
-              profileImage = newImage;
-            });
-          }
         }
+
+        // Save wing
+        if (wing != null) {
+          await prefs.setString("RESIDENT_WING", wing);
+        }
+
+        // Save flat number
+        if (flatNo != null) {
+          await prefs.setString("RESIDENT_FLAT", flatNo);
+        }
+
+        debugPrint("Saved wing => $wing");
+        debugPrint("Saved flat => $flatNo");
+
+        if (mounted) {
+          setState(() {
+            profileImage = newImage;
+          });
+        }
+
+      } else {
+        debugPrint("PROFILE RESPONSE INVALID: $response");
       }
     } catch (e) {
       debugPrint("PROFILE FETCH ERROR: $e");
@@ -84,7 +99,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
       setState(() => loadingProfile = false);
     }
   }
-
   bool get canSwitch =>
       roles.contains("ADMIN") &&
       (roles.contains("OWNER") || roles.contains("TENANT"));
@@ -235,48 +249,98 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
+
                     _buildFeatureCard(
                       "Maintenance\nBills",
                       Icons.receipt_long_rounded,
                       Colors.deepPurple,
                       "/maintenance",
                     ),
+
                     _buildFeatureCard(
                       "Pre-Approve\nGuest",
                       Icons.qr_code_rounded,
                       Colors.teal,
                       "/preapproved-guest",
                     ),
+
                     _buildFeatureCard(
                       "Raise\nComplaint",
                       Icons.report_problem_rounded,
                       Colors.redAccent,
                       "/complaint-create",
                     ),
+
                     _buildFeatureCard(
                       "My\nComplaints",
                       Icons.list_alt_rounded,
                       Colors.deepOrange,
                       "/my-complaints",
                     ),
+
                     _buildFeatureCard(
                       "Notices",
                       Icons.campaign_rounded,
                       Colors.indigo,
                       "/notices",
                     ),
+
                     _buildFeatureCard(
                       "Visitor\nHistory",
                       Icons.history_rounded,
                       Colors.blueGrey,
                       "/resident-visitor-history",
                     ),
+
+                    _buildFeatureCard(
+                      "My\nVehicles",
+                      Icons.directions_car_rounded,
+                      Colors.green,
+                      "/resident-vehicles",
+                    ),
+
                     _buildFeatureCard(
                       "My\nProfile",
                       Icons.person_rounded,
                       Colors.indigo,
                       "/profile",
                     ),
+
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ResidentSOSScreen(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.sos_rounded,
+                                color: Colors.red, size: 40),
+                            SizedBox(height: 12),
+                            Text(
+                              "Emergency\nSOS",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   ],
                 ),
               ],

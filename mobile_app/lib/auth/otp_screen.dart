@@ -45,27 +45,30 @@ class _OtpScreenState extends State<OtpScreen> {
     );
 
     if (response != null && response["token"] != null) {
-      // =================================
-      // 1️⃣ SAVE TOKENS
-      // =================================
+
+      /// =================================
+      /// 1️⃣ SAVE TOKENS
+      /// =================================
       await TokenStorage.saveToken(response["token"]);
 
       if (response["refreshToken"] != null) {
         await TokenStorage.saveRefreshToken(response["refreshToken"]);
       }
-      // =================================
-      // 2️⃣ SAVE ROLES
-      // =================================
+
+      /// =================================
+      /// 2️⃣ SAVE ROLES
+      /// =================================
       final List roles = response["roles"] ?? [];
       final List<String> normalizedRoles =
           roles.map((r) => r.toString().toUpperCase()).toList();
 
       await RoleStorage.saveRoles(normalizedRoles);
 
-      // =================================
-      // 3️⃣ SAVE LOGIN STATE
-      // =================================
+      /// =================================
+      /// 3️⃣ SAVE LOGIN STATE
+      /// =================================
       final prefs = await SharedPreferences.getInstance();
+
       await prefs.setBool('isLoggedIn', true);
       await prefs.setBool('admin_mode', normalizedRoles.contains("ADMIN"));
 
@@ -81,14 +84,40 @@ class _OtpScreenState extends State<OtpScreen> {
         await prefs.setString('role', 'OWNER');
       }
 
-      // =================================
-      // 🔔 INIT FCM COMPLETELY
-      // =================================
+      /// =================================
+      /// 🛡️ SAVE GUARD SHIFT DATA
+      /// =================================
+      if (normalizedRoles.contains("GUARD")) {
+        if (response["shiftStartTime"] != null) {
+          await prefs.setString(
+            "shiftStartTime",
+            response["shiftStartTime"],
+          );
+        }
+
+        if (response["shiftEndTime"] != null) {
+          await prefs.setString(
+            "shiftEndTime",
+            response["shiftEndTime"],
+          );
+        }
+
+        if (response["shiftType"] != null) {
+          await prefs.setString(
+            "shiftType",
+            response["shiftType"],
+          );
+        }
+      }
+
+      /// =================================
+      /// 🔔 INIT FCM COMPLETELY
+      /// =================================
       await NotificationService.initFcm();
 
-      // =================================
-      // 4️⃣ FETCH PROFILE TO CHECK PHOTO
-      // =================================
+      /// =================================
+      /// 4️⃣ FETCH PROFILE TO CHECK PHOTO
+      /// =================================
       final profileResponse = await ApiService.get("/users/me");
 
       bool requiresProfilePhoto = false;
@@ -98,7 +127,9 @@ class _OtpScreenState extends State<OtpScreen> {
         requiresProfilePhoto = profileResponse["requiresProfilePhoto"];
       }
 
-      // Save user basic info
+      /// =================================
+      /// SAVE USER BASIC INFO
+      /// =================================
       if (profileResponse != null && profileResponse["user"] != null) {
         await UserStorage.saveUser(
           name: profileResponse["user"]["name"],
@@ -109,17 +140,17 @@ class _OtpScreenState extends State<OtpScreen> {
 
       setState(() => loading = false);
 
-      // =================================
-      // 5️⃣ IF PROFILE PHOTO REQUIRED
-      // =================================
+      /// =================================
+      /// 5️⃣ IF PROFILE PHOTO REQUIRED
+      /// =================================
       if (requiresProfilePhoto == true) {
         Navigator.pushReplacementNamed(context, "/upload-profile-photo");
         return;
       }
 
-      // =================================
-      // 6️⃣ NORMAL NAVIGATION
-      // =================================
+      /// =================================
+      /// 6️⃣ NORMAL NAVIGATION
+      /// =================================
       if (normalizedRoles.contains("ADMIN")) {
         Navigator.pushReplacementNamed(context, "/admin");
       } else if (normalizedRoles.contains("GUARD")) {
@@ -127,7 +158,9 @@ class _OtpScreenState extends State<OtpScreen> {
       } else {
         Navigator.pushReplacementNamed(context, "/resident");
       }
+
     } else {
+
       setState(() => loading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,12 +169,14 @@ class _OtpScreenState extends State<OtpScreen> {
           backgroundColor: AppColors.error,
         ),
       );
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String mobile = ModalRoute.of(context)!.settings.arguments as String;
+    final String mobile =
+        ModalRoute.of(context)!.settings.arguments as String;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -154,31 +189,44 @@ class _OtpScreenState extends State<OtpScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24.0,
+            vertical: 20.0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
+
               Icon(
                 Icons.lock_person_rounded,
                 size: 80,
                 color: AppColors.primary,
               ),
+
               const SizedBox(height: 24),
+
               Text(
                 "OTP Verification",
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 8),
+
               Text(
                 "Enter the OTP sent to +91 $mobile",
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 40),
+
               TextField(
                 controller: otpController,
                 keyboardType: TextInputType.number,
@@ -192,10 +240,15 @@ class _OtpScreenState extends State<OtpScreen> {
                 decoration: const InputDecoration(
                   counterText: "",
                   hintText: "______",
-                  hintStyle: TextStyle(letterSpacing: 8, color: Colors.grey),
+                  hintStyle: TextStyle(
+                    letterSpacing: 8,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
+
               const SizedBox(height: 32),
+
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
@@ -204,7 +257,10 @@ class _OtpScreenState extends State<OtpScreen> {
                       ? const SizedBox(
                           width: 40,
                           height: 40,
-                          child: WalkingLoader(size: 40, color: Colors.white),
+                          child: WalkingLoader(
+                            size: 40,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text("Verify & Proceed"),
                 ),

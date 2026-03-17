@@ -15,6 +15,15 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
   bool loading = false;
 
   Future<void> verifyOtp() async {
+    if (otpController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid 6-digit OTP"),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     setState(() => loading = true);
 
     final response = await ApiService.post(
@@ -72,10 +81,16 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
             TextField(
               controller: otpController,
               keyboardType: TextInputType.number,
+              maxLength: 6,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 24, 
+                letterSpacing: 8, 
+                fontWeight: FontWeight.bold
+                ),
               decoration: InputDecoration(
                 hintText: "Enter OTP",
+                counterText: "",
                 hintStyle: const TextStyle(fontSize: 18, letterSpacing: 1, fontWeight: FontWeight.normal),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,

@@ -16,7 +16,10 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   List<String> roles = [];
+
   String? profileImage;
+  String? wing;
+
   bool loadingProfile = true;
 
   static const String profileCacheKey = "ADMIN_PROFILE_IMAGE";
@@ -31,16 +34,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> loadRoles() async {
     final data = await RoleStorage.getRoles();
+
     if (!mounted) return;
 
     setState(() {
       roles = data;
     });
   }
-
-  /* ===============================
-     LOAD CACHED PROFILE IMAGE
-  =============================== */
+  
 
   Future<void> loadCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -63,7 +64,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
       final response = await ApiService.get("/users/profile");
 
       if (response != null && response["user"] != null) {
-        final newImage = response["user"]["profileImage"];
+        final user = response["user"];
+
+        final newImage = user["profileImage"];
+        final newWing = user["wing"];
+
+        if (mounted) {
+          setState(() {
+            wing = newWing;
+          });
+        }
 
         if (newImage != null) {
           final prefs = await SharedPreferences.getInstance();
@@ -93,6 +103,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: AppColors.primary,
@@ -104,6 +115,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: Icon(Icons.admin_panel_settings, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
+
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -111,15 +123,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   "Admin Dashboard",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+
                 Text(
-                  "Manage Society",
+                  wing != null
+                      ? "Wing $wing • Manage Society"
+                      : "Manage Society",
                   style: TextStyle(
-                      fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
                 ),
               ],
             ),
           ],
         ),
+
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -156,15 +174,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
+
       body: Column(
         children: [
           _buildHeader(),
+
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+
                 if (canSwitch) _buildSwitchModeCard(),
+
                 const SizedBox(height: 20),
+
                 const Text(
                   "Quick Actions",
                   style: TextStyle(
@@ -173,7 +196,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     color: AppColors.textPrimary,
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -182,60 +207,82 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
+
+                    _buildActionCard(
+                      "SOS\nAlerts",
+                      Icons.warning_rounded,
+                      Colors.red,
+                      "/admin-sos",
+                    ),
+
                     _buildActionCard(
                       "Generate\nMaintenance",
                       Icons.receipt_long_rounded,
                       Colors.deepPurple,
                       "/generate-maintenance",
                     ),
+
                     _buildActionCard(
                       "All\nMaintenance",
                       Icons.list_alt_rounded,
                       Colors.teal,
                       "/admin-maintenance-list",
                     ),
+
                     _buildActionCard(
                       "Invite\nResident",
                       Icons.group_add_rounded,
                       Colors.blueAccent,
                       "/invite-resident",
                     ),
+
                     _buildActionCard(
                       "Pending\nTenants",
                       Icons.person_add_alt_1_rounded,
                       Colors.redAccent,
                       "/pending-tenants",
                     ),
+
                     _buildActionCard(
                       "Manage\nUsers",
                       Icons.groups_rounded,
                       Colors.orangeAccent,
                       "/society-users",
                     ),
+
                     _buildActionCard(
                       "Invite\nGuard",
                       Icons.security_rounded,
                       Colors.green,
                       "/invite-guard",
                     ),
+
                     _buildActionCard(
                       "Manage\nComplaints",
                       Icons.admin_panel_settings_rounded,
                       Colors.red,
                       "/admin-complaints",
                     ),
+
                     _buildActionCard(
                       "Create\nNotice",
                       Icons.post_add_rounded,
                       Colors.blue,
                       "/create-notice",
                     ),
+
                     _buildActionCard(
                       "View\nNotices",
                       Icons.campaign_rounded,
                       Colors.indigo,
                       "/notices",
-                    )
+                    ),
+                    _buildActionCard(
+                      "Manage\nVehicles",
+                      Icons.directions_car,
+                      Colors.deepPurple,
+                      "/admin-vehicles",
+                    ),
                   ],
                 ),
               ],
@@ -281,10 +328,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         title: const Text(
           "Switch to Personal Mode",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         subtitle: const Text(
           "Access your flat dashboard",

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
+import '../sos/guard_sos_screen.dart';
 
 class GuardDashboard extends StatefulWidget {
   const GuardDashboard({super.key});
@@ -15,6 +16,10 @@ class _GuardDashboardState extends State<GuardDashboard> {
   String? profileImage;
   bool loadingProfile = true;
 
+  bool isOnDuty = false;
+  String shiftStart = "";
+  String shiftEnd = "";
+
   static const String profileCacheKey = "GUARD_PROFILE_IMAGE";
 
   @override
@@ -22,11 +27,42 @@ class _GuardDashboardState extends State<GuardDashboard> {
     super.initState();
     loadCachedProfile();
     fetchProfile();
+    loadShiftInfo();
   }
 
-  /* ===============================
-     LOAD CACHED PROFILE IMAGE
-  =============================== */
+  Future<void> loadShiftInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    shiftStart = prefs.getString("shiftStartTime") ?? "";
+    shiftEnd = prefs.getString("shiftEndTime") ?? "";
+
+    if (shiftStart.isNotEmpty && shiftEnd.isNotEmpty) {
+      isOnDuty = checkShift(shiftStart, shiftEnd);
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  bool checkShift(String start, String end) {
+    final now = DateTime.now();
+
+    final startParts = start.split(":");
+    final endParts = end.split(":");
+
+    final startMinutes =
+        int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+    final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+
+    final currentMinutes = now.hour * 60 + now.minute;
+
+    if (startMinutes < endMinutes) {
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    } else {
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+  }
 
   Future<void> loadCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -39,10 +75,6 @@ class _GuardDashboardState extends State<GuardDashboard> {
       });
     }
   }
-
-  /* ===============================
-     FETCH PROFILE FROM API
-  =============================== */
 
   Future<void> fetchProfile() async {
     try {
@@ -100,6 +132,13 @@ class _GuardDashboardState extends State<GuardDashboard> {
                     color: Colors.white.withOpacity(0.8),
                   ),
                 ),
+                const Text(
+                  "Society Security",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white70,
+                  ),
+                ),
               ],
             ),
           ],
@@ -146,10 +185,21 @@ class _GuardDashboardState extends State<GuardDashboard> {
       body: Column(
         children: [
           _buildHeader(),
+          _buildShiftStatus(),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+
+                _buildActionCard(
+                  context,
+                  title: "SOS Alerts",
+                  subtitle: "View emergency alerts from residents",
+                  icon: Icons.warning_rounded,
+                  color: Colors.red,
+                  route: "SOS_SCREEN",
+                ),
+
                 _buildActionCard(
                   context,
                   title: "Visitor Entry",
@@ -158,6 +208,7 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   color: Colors.blueAccent,
                   route: "/visitor-entry",
                 ),
+
                 _buildActionCard(
                   context,
                   title: "Delivery Entry",
@@ -166,6 +217,7 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   color: Colors.orangeAccent,
                   route: "/delivery-entry",
                 ),
+
                 _buildActionCard(
                   context,
                   title: "Guest with Pass",
@@ -174,6 +226,7 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   color: Colors.green,
                   route: "/guest-otp",
                 ),
+
                 _buildActionCard(
                   context,
                   title: "Visitor Log",
@@ -182,7 +235,48 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   color: Colors.purpleAccent,
                   route: "/visitors",
                 ),
+
+                _buildActionCard(
+                  context,
+                  title: "Vehicle Search",
+                  subtitle: "Find vehicle owner by number plate",
+                  icon: Icons.directions_car_rounded,
+                  color: Colors.indigo,
+                  route: "/vehicle-search",
+                ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShiftStatus() {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isOnDuty ? Colors.green : Colors.red,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isOnDuty ? Icons.check_circle : Icons.block,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isOnDuty
+                  ? "ON DUTY • Shift $shiftStart - $shiftEnd"
+                  : "OFF DUTY • Shift $shiftStart - $shiftEnd",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -212,7 +306,27 @@ class _GuardDashboardState extends State<GuardDashboard> {
     required String route,
   }) {
     return InkWell(
-      onTap: () => Navigator.pushNamed(context, route),
+      onTap: () {
+        if (!isOnDuty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Your shift is not active right now"),
+            ),
+          );
+          return;
+        }
+
+        if (route == "SOS_SCREEN") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const GuardSOSAlertScreen(),
+            ),
+          );
+        } else {
+          Navigator.pushNamed(context, route);
+        }
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),

@@ -15,6 +15,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
   final TextEditingController mobileController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController flatController = TextEditingController();
+  final TextEditingController wingController = TextEditingController();
 
   bool loading = false;
 
@@ -43,6 +44,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
         "name": nameController.text.trim(),
         "email": emailController.text.trim().toLowerCase(),
         "mobile": mobileController.text.trim(),
+        "wing": wingController.text.trim().toUpperCase(),
         "flatNo": flatController.text.trim(),
         "role": selectedRole,
       },
@@ -62,6 +64,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
       emailController.clear();
       mobileController.clear();
       flatController.clear();
+      wingController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -78,6 +81,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
     emailController.dispose();
     mobileController.dispose();
     flatController.dispose();
+    wingController.dispose();
     super.dispose();
   }
 
@@ -120,11 +124,17 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
             ),
             const SizedBox(height: 16),
             _buildTextField(
-              flatController,
-              "Flat Number (e.g. A-203)",
+              wingController,
+              "Wing (A/B/C)",
               Icons.home_outlined,
+              maxLength: 1,
             ),
             const SizedBox(height: 16),
+            _buildTextField(
+              flatController, 
+              "Flat Number (e.g. 203)",
+              Icons.home_outlined,
+            ),
             _buildTextField(
               mobileController,
               "Mobile Number",

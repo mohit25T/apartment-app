@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import '../core/navigation/navigation_service.dart';
+import '../core/services/sos_alarm_service.dart';
 
 class NotificationService {
   static String? fcmToken;
@@ -71,6 +72,14 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((message) {
       debugPrint("📩 Foreground message received");
       debugPrint("📦 Data: ${message.data}");
+    });
+
+    //SOS sound
+    FirebaseMessaging.onMessage.listen((message) {
+      if (message.data['type'] == 'SOS_TRIGGERED') {
+        debugPrint("🔔 SOS Triggered - Playing alarm");
+        SOSAlarmService.playAlarm();
+      }
     });
   }
 

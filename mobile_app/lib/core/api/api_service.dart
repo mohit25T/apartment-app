@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -11,9 +12,22 @@ import '../constants/api_constants.dart';
 import '../storage/token_storage.dart';
 
 class ApiService {
-  // =====================================================
-  // 🔁 REFRESH ACCESS TOKEN
-  // =====================================================
+
+  /// =====================================================
+  /// 🌐 INTERNET CHECK
+  /// =====================================================
+  static Future<bool> hasInternet() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// =====================================================
+  /// 🔁 REFRESH ACCESS TOKEN
+  /// =====================================================
   static Future<bool> refreshToken() async {
     try {
       final refreshToken = await TokenStorage.getRefreshToken();
@@ -21,7 +35,7 @@ class ApiService {
       if (refreshToken == null) return false;
 
       final response = await http.post(
-        Uri.parse(ApiConstants.baseUrl + "/api/auth/refresh-token"),
+        Uri.parse(ApiConstants.baseUrl + "/auth/refresh-token"),
         headers: {
           "Content-Type": "application/json",
         },
@@ -32,21 +46,19 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         await TokenStorage.saveToken(data["token"]);
-
         return true;
       }
 
       return false;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
-  // =====================================================
-  // ================= CACHE HELPERS =================
-  // =====================================================
+  /// =====================================================
+  /// ================= CACHE HELPERS =================
+  /// =====================================================
 
   static Future<void> _saveCache(String key, dynamic data) async {
     try {
@@ -63,20 +75,17 @@ class ApiService {
     }
   }
 
-  static Future<dynamic> _getCache(String key, {int maxAgeSeconds = 60}) async {
+  static Future<dynamic> _getCache(String key,
+      {int maxAgeSeconds = 60}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       final cached = prefs.getString(key);
 
       if (cached == null) return null;
 
       final decoded = jsonDecode(cached);
 
-      // Validate structure
-      if (decoded == null ||
-          decoded["timestamp"] == null ||
-          decoded["data"] == null) {
+      if (decoded["timestamp"] == null || decoded["data"] == null) {
         await prefs.remove(key);
         return null;
       }
@@ -87,7 +96,6 @@ class ApiService {
       final ageSeconds = (now - timestamp) / 1000;
 
       if (ageSeconds > maxAgeSeconds) {
-        // Cache expired
         await prefs.remove(key);
         return null;
       }
@@ -99,13 +107,18 @@ class ApiService {
     }
   }
 
-  // =====================================================
-  // ================= POST =================
-  // =====================================================
+  /// =====================================================
+  /// ================= POST =================
+  /// =====================================================
   static Future<dynamic> post(
     String endpoint,
     Map<String, dynamic> body,
   ) async {
+
+    if (!await hasInternet()) {
+      return {"error": true, "message": "No internet connection"};
+    }
+
     final token = await TokenStorage.getToken();
 
     final response = await http.post(
@@ -124,27 +137,26 @@ class ApiService {
       }
     }
 
-    print("STATUS CODE => ${response.statusCode}");
-    print("RAW RESPONSE => ${response.body}");
-
     return jsonDecode(response.body);
   }
 
-  // =====================================================
-  // ================= GET =================
-  // =====================================================
+  /// =====================================================
+  /// ================= GET =================
+  /// =====================================================
   static Future<dynamic> get(String endpoint) async {
+
+    final cacheKey = "CACHE_$endpoint";
+
     try {
-      final token = await TokenStorage.getToken();
 
-      final cacheKey = "CACHE_$endpoint";
+      if (!await hasInternet()) {
+        final cachedData = await _getCache(cacheKey);
+        if (cachedData != null) return cachedData;
 
-      // Try cache first
-      final cachedData = await _getCache(cacheKey);
-
-      if (cachedData != null) {
-        print("CACHE HIT => $endpoint");
+        return {"error": true, "message": "No internet connection"};
       }
+
+      final token = await TokenStorage.getToken();
 
       final response = await http.get(
         Uri.parse(ApiConstants.baseUrl + endpoint),
@@ -161,28 +173,19 @@ class ApiService {
         }
       }
 
-      print("STATUS CODE => ${response.statusCode}");
-      print("RAW RESPONSE => ${response.body}");
-
-      if (!response.headers["content-type"]!.contains("application/json")) {
-        return {"error": true, "message": "Invalid server response"};
-      }
-
       final data = jsonDecode(response.body);
 
-      // Save fresh response to cache
       await _saveCache(cacheKey, data);
 
       return data;
-    } catch (e) {
-      print("GET ERROR => $e");
 
-      // If network fails return cached data
-      final cacheKey = "CACHE_$endpoint";
+    } catch (e) {
+
+      debugPrint("GET ERROR => $e");
+
       final cachedData = await _getCache(cacheKey);
 
       if (cachedData != null) {
-        print("RETURNING CACHED DATA");
         return cachedData;
       }
 
@@ -190,13 +193,18 @@ class ApiService {
     }
   }
 
-  // =====================================================
-  // ================= PUT =================
-  // =====================================================
+  /// =====================================================
+  /// ================= PUT =================
+  /// =====================================================
   static Future<dynamic> put(
     String endpoint,
     Map<String, dynamic> body,
   ) async {
+
+    if (!await hasInternet()) {
+      return {"error": true, "message": "No internet connection"};
+    }
+
     final token = await TokenStorage.getToken();
 
     final response = await http.put(
@@ -215,60 +223,56 @@ class ApiService {
       }
     }
 
-    print("STATUS CODE => ${response.statusCode}");
-    print("RAW RESPONSE => ${response.body}");
-
     return jsonDecode(response.body);
   }
 
-  // =====================================================
-  // ================= PATCH =================
-  // =====================================================
+  /// =====================================================
+  /// ================= PATCH =================
+  /// =====================================================
   static Future<dynamic> patch(
     String endpoint, {
     Map<String, dynamic>? body,
   }) async {
-    try {
-      final token = await TokenStorage.getToken();
 
-      final response = await http.patch(
-        Uri.parse(ApiConstants.baseUrl + endpoint),
-        headers: {
-          "Content-Type": "application/json",
-          if (token != null) "Authorization": "Bearer $token",
-        },
-        body: body != null ? jsonEncode(body) : null,
-      );
-
-      if (response.statusCode == 401) {
-        final refreshed = await refreshToken();
-        if (refreshed) {
-          return patch(endpoint, body: body);
-        }
-      }
-
-      print("STATUS CODE => ${response.statusCode}");
-      print("RAW RESPONSE => ${response.body}");
-
-      if (!response.headers["content-type"]!.contains("application/json")) {
-        return {"error": true, "message": "Invalid server response"};
-      }
-
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {"error": true, "message": "Network error"};
+    if (!await hasInternet()) {
+      return {"error": true, "message": "No internet connection"};
     }
+
+    final token = await TokenStorage.getToken();
+
+    final response = await http.patch(
+      Uri.parse(ApiConstants.baseUrl + endpoint),
+      headers: {
+        "Content-Type": "application/json",
+        if (token != null) "Authorization": "Bearer $token",
+      },
+      body: body != null ? jsonEncode(body) : null,
+    );
+
+    if (response.statusCode == 401) {
+      final refreshed = await refreshToken();
+      if (refreshed) {
+        return patch(endpoint, body: body);
+      }
+    }
+
+    return jsonDecode(response.body);
   }
 
-  // =====================================================
-  // ================= MULTIPART =================
-  // =====================================================
+  /// =====================================================
+  /// ================= MULTIPART =================
+  /// =====================================================
   static Future<dynamic> multipart(
     String endpoint,
     Map<String, dynamic> fields, {
     List<XFile>? xFiles,
     required String fileFieldName,
   }) async {
+
+    if (!await hasInternet()) {
+      return {"error": true, "message": "No internet connection"};
+    }
+
     try {
       final token = await TokenStorage.getToken();
 
@@ -289,6 +293,7 @@ class ApiService {
 
       if (xFiles != null && xFiles.isNotEmpty) {
         for (var file in xFiles) {
+
           if (kIsWeb) {
             final bytes = await file.readAsBytes();
 
@@ -323,61 +328,53 @@ class ApiService {
         }
       }
 
-      print("STATUS CODE => ${response.statusCode}");
-      print("RAW RESPONSE => ${response.body}");
-
       if (response.body.isEmpty) {
         return {"error": true, "message": "Empty server response"};
       }
 
       return jsonDecode(response.body);
-    } catch (e) {
-      print("MULTIPART ERROR => $e");
 
+    } catch (e) {
+      debugPrint("MULTIPART ERROR => $e");
       return {"error": true, "message": "Network error"};
     }
   }
 
-  // =====================================================
-  // ================= DELETE =================
-  // =====================================================
+  /// =====================================================
+  /// ================= DELETE =================
+  /// =====================================================
   static Future<dynamic> delete(
     String endpoint, {
     Map<String, dynamic>? body,
   }) async {
-    try {
-      final token = await TokenStorage.getToken();
 
-      final response = await http.delete(
-        Uri.parse(ApiConstants.baseUrl + endpoint),
-        headers: {
-          "Content-Type": "application/json",
-          if (token != null) "Authorization": "Bearer $token",
-        },
-        body: body != null ? jsonEncode(body) : null,
-      );
-
-      if (response.statusCode == 401) {
-        final refreshed = await refreshToken();
-        if (refreshed) {
-          return delete(endpoint, body: body);
-        }
-      }
-
-      print("STATUS CODE => ${response.statusCode}");
-      print("RAW RESPONSE => ${response.body}");
-
-      if (response.body.isEmpty) {
-        return {"error": true, "message": "Empty server response"};
-      }
-
-      if (!response.headers["content-type"]!.contains("application/json")) {
-        return {"error": true, "message": "Invalid server response"};
-      }
-
-      return jsonDecode(response.body);
-    } catch (e) {
-      return {"error": true, "message": "Network error"};
+    if (!await hasInternet()) {
+      return {"error": true, "message": "No internet connection"};
     }
+
+    final token = await TokenStorage.getToken();
+
+    final response = await http.delete(
+      Uri.parse(ApiConstants.baseUrl + endpoint),
+      headers: {
+        "Content-Type": "application/json",
+        if (token != null) "Authorization": "Bearer $token",
+      },
+      body: body != null ? jsonEncode(body) : null,
+    );
+
+    if (response.statusCode == 401) {
+      final refreshed = await refreshToken();
+      if (refreshed) {
+        return delete(endpoint, body: body);
+      }
+    }
+
+    if (response.body.isEmpty) {
+      return {"error": true, "message": "Empty server response"};
+    }
+
+    return jsonDecode(response.body);
   }
+
 }

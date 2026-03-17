@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../admin/admin_maintenance_list_screen.dart';
 import '../admin/admin_pending_tenants_screen.dart';
+import '../admin/admin_sos_list_screen.dart';
+import '../admin/vehicle_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/auth_check_screen.dart';
 import '../auth/otp_screen.dart';
@@ -12,6 +14,7 @@ import '../admin/generate_maintenance_screen.dart';
 import '../complaint/complaint_admin_screen.dart';
 import '../complaint/complaint_create_screen.dart';
 import '../complaint/complaint_my_screen.dart';
+import '../guard/vehicle_search_screen.dart';
 import '../notice/notice_list_screen.dart';
 import '../notice/notice_create_screen.dart';
 import '../profile/profile_screen.dart';
@@ -29,6 +32,7 @@ import '../guard/visitor_screen.dart';
 import '../guard/delivery_entry_screen.dart';
 import '../guard/new_visitor_screen.dart';
 import '../guard/guests_otp_screen.dart';
+import '../resident/vehicle_list_screen.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => const AuthCheckScreen(),
@@ -62,4 +66,8 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/notices': (context) => const NoticeListScreen(),
   '/admin-complaints': (context) => const ComplaintAdminScreen(),
   '/create-notice': (context) => const NoticeCreateScreen(),
+  '/admin-vehicles': (context) => const AdminVehicleListScreen(),
+  '/vehicle-search': (context) => const GuardVehicleSearchScreen(),
+  '/resident-vehicles': (context) => const ResidentVehicleListScreen(),
+  '/admin-sos': (context) => const AdminSOSListScreen(),
 };

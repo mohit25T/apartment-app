@@ -17,13 +17,42 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
 
   bool loading = false;
 
+  String shiftType = "DAY";
+  TimeOfDay? shiftStart;
+  TimeOfDay? shiftEnd;
+
+  String formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
+  }
+
+  Future<void> pickTime(bool isStart) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          shiftStart = picked;
+        } else {
+          shiftEnd = picked;
+        }
+      });
+    }
+  }
+
   Future<void> inviteGuard() async {
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
-        mobileController.text.length != 10) {
+        mobileController.text.length != 10 ||
+        shiftStart == null ||
+        shiftEnd == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Enter name, email and valid mobile"),
+          content: const Text("Fill all fields including shift time"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -38,6 +67,9 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
         "name": nameController.text.trim(),
         "email": emailController.text.trim().toLowerCase(),
         "mobile": mobileController.text.trim(),
+        "shiftType": shiftType,
+        "shiftStartTime": formatTime(shiftStart!),
+        "shiftEndTime": formatTime(shiftEnd!),
       },
     );
 
@@ -74,7 +106,6 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -106,14 +137,61 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
 
             _buildTextField(nameController, "Guard Name", Icons.person_outline),
             const SizedBox(height: 16),
-            _buildTextField(emailController, "Email Address", Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 16),
+
             _buildTextField(
-              mobileController, 
-              "Mobile Number", 
-              Icons.phone_android_outlined, 
-              keyboardType: TextInputType.phone, 
-              maxLength: 10
+              emailController,
+              "Email Address",
+              Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+            ),
+
+            const SizedBox(height: 16),
+
+            _buildTextField(
+              mobileController,
+              "Mobile Number",
+              Icons.phone_android_outlined,
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+            ),
+
+            const SizedBox(height: 20),
+
+            DropdownButtonFormField(
+              value: shiftType,
+              decoration: InputDecoration(
+                labelText: "Shift Type",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+              items: const [
+                DropdownMenuItem(value: "DAY", child: Text("Day Shift")),
+                DropdownMenuItem(value: "NIGHT", child: Text("Night Shift")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  shiftType = value.toString();
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            _buildTimePicker(
+              "Shift Start Time",
+              shiftStart,
+              () => pickTime(true),
+            ),
+
+            const SizedBox(height: 16),
+
+            _buildTimePicker(
+              "Shift End Time",
+              shiftEnd,
+              () => pickTime(false),
             ),
 
             const SizedBox(height: 40),
@@ -166,6 +244,26 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
         ),
         filled: true,
         fillColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildTimePicker(String label, TimeOfDay? time, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        child: Text(
+          time == null ? "Select Time" : formatTime(time),
+          style: const TextStyle(fontSize: 16),
+        ),
       ),
     );
   }

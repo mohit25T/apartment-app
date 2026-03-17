@@ -478,7 +478,7 @@ class _AdminMaintenanceListScreenState
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                    "Flat: ${bill["residentId"]?["flatNo"] ?? bill["flatNumber"]}"),
+                                    "Flat: ${bill["residentId"]?["wing"]??""}-${bill["residentId"]?["flatNo"] ?? bill["flatNumber"]}"),
                                 const SizedBox(height: 6),
                                 Text("Month: ${bill["month"]}"),
                                 const SizedBox(height: 6),

@@ -195,6 +195,19 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
+                              
+                              //FLAT AND WING
+                              if (user["wing"] != null &&
+                                  user["flatNo"] != null)
+                                Text(
+                                  "${user["wing"]} - ${user["flatNo"]}",
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              const SizedBox(height: 2),
+
 
                               // EMAIL
                               if (user["email"] != null &&

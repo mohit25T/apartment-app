@@ -160,7 +160,7 @@ class _AdminPendingTenantsScreenState extends State<AdminPendingTenantsScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Text("Flat: ${tenant["flatNo"]}"),
+                            Text("Flat: ${tenant["wing"] ?? ""}-${tenant["flatNo"] ?? ""}"),
                             Text("Mobile: ${tenant["mobile"]}"),
                             Text("Email: ${tenant["email"]}"),
                             const SizedBox(height: 8),

@@ -23,6 +23,10 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
     fetchTenant();
   }
 
+  /* ===============================
+     FETCH TENANT
+  =============================== */
+
   Future<void> fetchTenant() async {
     setState(() => loading = true);
 
@@ -33,10 +37,15 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
       type = response["type"];
     } else {
       tenant = null;
+      type = null;
     }
 
     setState(() => loading = false);
   }
+
+  /* ===============================
+     REMOVE TENANT
+  =============================== */
 
   Future<void> _confirmRemoveTenant() async {
     final confirm = await showDialog(
@@ -74,7 +83,7 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
           ),
         );
 
-        fetchTenant(); // Refresh UI
+        fetchTenant();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -84,6 +93,10 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
       }
     }
   }
+
+  /* ===============================
+     STATUS HELPERS
+  =============================== */
 
   Color getStatusColor() {
     if (type == "ACTIVE") return Colors.green;
@@ -96,6 +109,10 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
     if (type == "PENDING") return "Pending Registration";
     return "";
   }
+
+  /* ===============================
+     UI
+  =============================== */
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +138,7 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
                     ),
                   ),
                 )
-              : Padding(
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Card(
                     shape: RoundedRectangleBorder(
@@ -145,7 +162,7 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Text(
-                                  tenant!["name"] ?? "",
+                                  tenant?["name"] ?? "",
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -170,15 +187,25 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
                               )
                             ],
                           ),
-                          const SizedBox(height: 30),
-                          _buildInfoRow("Mobile", tenant!["mobile"]),
-                          const SizedBox(height: 12),
-                          _buildInfoRow("Email", tenant!["email"]),
-                          const SizedBox(height: 12),
-                          _buildInfoRow("Flat No", tenant!["flatNo"]),
+
                           const SizedBox(height: 30),
 
-                          // 🔥 REMOVE BUTTON (Only for ACTIVE tenant)
+                          _buildInfoRow("Mobile", tenant?["mobile"]),
+                          const SizedBox(height: 12),
+
+                          _buildInfoRow("Email", tenant?["email"]),
+                          const SizedBox(height: 12),
+
+                          /// WING + FLAT
+                          _buildInfoRow(
+                              "Flat",
+                              tenant?["wing"] != null
+                                  ? "${tenant?["wing"]}-${tenant?["flatNo"]}"
+                                  : tenant?["flatNo"]),
+
+                          const SizedBox(height: 30),
+
+                          /// REMOVE BUTTON
                           if (type == "ACTIVE")
                             SizedBox(
                               width: double.infinity,
@@ -212,6 +239,10 @@ class _ResidentMyTenantScreenState extends State<ResidentMyTenantScreen> {
                 ),
     );
   }
+
+  /* ===============================
+     INFO ROW
+  =============================== */
 
   Widget _buildInfoRow(String label, dynamic value) {
     return Row(

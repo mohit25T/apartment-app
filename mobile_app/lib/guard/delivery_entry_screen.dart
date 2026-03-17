@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
@@ -14,13 +15,18 @@ class DeliveryEntryScreen extends StatefulWidget {
 class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   bool loading = false;
 
+  List wings = [];
   List flats = [];
+
+  String? selectedWing;
   String? selectedFlat;
+
+  bool wingSelected = false;
 
   String? selectedCompany;
   String? parcelType;
 
-  XFile? deliveryImage; // ✅ Changed
+  XFile? deliveryImage;
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController mobileController = TextEditingController();
@@ -42,19 +48,20 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   }
 
   /* ============================
-        FETCH FLATS
+        FETCH WINGS
   ============================ */
+
   Future<void> fetchFlats() async {
     setState(() => loading = true);
 
     final response = await ApiService.get("/visitors/flats");
 
-    if (response is List) {
-      flats = response;
+    if (response != null && response["type"] == "WINGS") {
+      wings = response["data"];
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response["message"] ?? "Failed to load flats"),
+          content: Text(response?["message"] ?? "Failed to load wings"),
           backgroundColor: AppColors.error,
         ),
       );
@@ -64,8 +71,25 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   }
 
   /* ============================
+        FETCH FLATS OF WING
+  ============================ */
+
+  Future<void> fetchWingFlats() async {
+
+    final response =
+        await ApiService.get("/visitors/flats?wing=$selectedWing");
+
+    if (response != null && response["type"] == "FLATS") {
+      flats = response["data"];
+    }
+
+    setState(() {});
+  }
+
+  /* ============================
         PICK IMAGE
   ============================ */
+
   Future<void> pickImage() async {
     final XFile? picked =
         await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
@@ -80,6 +104,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   /* ============================
         CREATE DELIVERY ENTRY
   ============================ */
+
   Future<void> createDelivery() async {
     if (selectedFlat == null || selectedCompany == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,17 +129,21 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
 
     setState(() => loading = true);
 
+    final selectedFlatData =
+        flats.firstWhere((f) => f["flatNo"] == selectedFlat);
+
     final response = await ApiService.multipart(
       "/visitors/create",
       {
         "personName": selectedCompany,
         "personMobile": mobileController.text.trim(),
+        "wing": selectedFlatData["wing"],
         "flatNo": selectedFlat,
         "entryType": "DELIVERY",
         "deliveryCompany": selectedCompany,
         "parcelType": parcelType,
       },
-      xFiles: [deliveryImage!], // ✅ Changed
+      xFiles: [deliveryImage!],
       fileFieldName: "visitorPhoto",
     );
 
@@ -144,6 +173,10 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
     super.dispose();
   }
 
+  /* ============================
+        UI
+  ============================ */
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,6 +192,7 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+
                   const Text(
                     "Log Delivery",
                     style: TextStyle(
@@ -167,123 +201,205 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
+
                   const SizedBox(height: 24),
 
-                  /// IMAGE CAPTURE
-                  GestureDetector(
-                    onTap: pickImage,
-                    child: Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: Colors.grey.shade200,
-                        border: Border.all(color: Colors.grey.shade400),
+                  /// WING SELECTION
+                  if (!wingSelected)
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.5,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                       ),
-                      child: deliveryImage == null
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.camera_alt,
-                                      size: 40, color: AppColors.primary),
-                                  SizedBox(height: 8),
-                                  Text("Capture Delivery Photo"),
-                                ],
-                              ),
-                            )
-                          : ClipRRect(
+                      itemCount: wings.length,
+                      itemBuilder: (context, index) {
+
+                        final wing = wings[index]["wing"];
+
+                        return InkWell(
+                          onTap: () {
+                            selectedWing = wing;
+                            wingSelected = true;
+                            fetchWingFlats();
+                            setState(() {});
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                deliveryImage!.path,
-                                fit: BoxFit.cover,
+                            ),
+                            child: Center(
+                              child: Text(
+                                wing,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
-
-                  _buildDropdown(
-                    value: selectedFlat,
-                    hint: "Select Flat",
-                    items: flats.map<DropdownMenuItem<String>>((f) {
-                      return DropdownMenuItem(
-                        value: f["flatNo"],
-                        child: Text("${f["flatNo"]}"),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => selectedFlat = val),
-                    icon: Icons.apartment,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  _buildDropdown(
-                    value: selectedCompany,
-                    hint: "Delivery Company",
-                    items: companies
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                    onChanged: (val) => setState(() => selectedCompany = val),
-                    icon: Icons.local_shipping,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextField(
-                    controller: mobileController,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                      labelText: "Delivery Person Mobile",
-                      prefixIcon: const Icon(Icons.phone_android,
-                          color: AppColors.primary),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      counterText: "",
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: "Parcel Type (optional)",
-                      prefixIcon: const Icon(Icons.inventory_2,
-                          color: AppColors.primary),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    onChanged: (val) {
-                      parcelType = val;
-                    },
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: loading ? null : createDelivery,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                  /// FLAT SELECTION
+                  if (wingSelected && selectedFlat == null)
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.5,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                       ),
-                      child: loading
-                          ? const WalkingLoader(size: 24, color: Colors.white)
-                          : const Text(
-                              "Create Delivery Entry",
-                              style: TextStyle(fontSize: 16),
+                      itemCount: flats.length,
+                      itemBuilder: (context, index) {
+
+                        final flat =
+                            "${flats[index]["wing"]}-${flats[index]["flatNo"]}";
+
+                        return InkWell(
+                          onTap: () {
+                            selectedFlat = flats[index]["flatNo"];
+                            setState(() {});
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: Center(
+                              child: Text(
+                                flat,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  )
+
+                  /// DELIVERY FORM
+                  if (selectedFlat != null) ...[
+
+                    const SizedBox(height: 24),
+
+                    GestureDetector(
+                      onTap: pickImage,
+                      child: Container(
+                        height: 120,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey.shade200,
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: deliveryImage == null
+                            ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.camera_alt,
+                                        size: 40, color: AppColors.primary),
+                                    SizedBox(height: 8),
+                                    Text("Capture Delivery Photo"),
+                                  ],
+                                ),
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  File(deliveryImage!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    _buildDropdown(
+                      value: selectedCompany,
+                      hint: "Delivery Company",
+                      items: companies
+                          .map((c) =>
+                              DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => selectedCompany = val),
+                      icon: Icons.local_shipping,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    TextField(
+                      controller: mobileController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        labelText: "Delivery Person Mobile",
+                        prefixIcon: const Icon(Icons.phone_android,
+                            color: AppColors.primary),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.white,
+                        counterText: "",
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Parcel Type (optional)",
+                        prefixIcon: const Icon(Icons.inventory_2,
+                            color: AppColors.primary),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      onChanged: (val) {
+                        parcelType = val;
+                      },
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : createDelivery,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: loading
+                            ? const WalkingLoader(
+                                size: 24,
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                "Create Delivery Entry",
+                                style: TextStyle(fontSize: 16),
+                              ),
+                      ),
+                    )
+                  ]
                 ],
               ),
             ),

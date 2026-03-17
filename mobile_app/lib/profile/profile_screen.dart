@@ -416,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               _infoTile("Status", user!["status"], Icons.info_outline),
               if (user!["flatNo"] != null)
-                _infoTile("Flat No", user!["flatNo"], Icons.home),
+                _infoTile("Flat","${user!["wing"]??""}-${user!["flatNo"]}", Icons.home),
               if (user!["society"] != null)
                 _infoTile(
                   "Society",

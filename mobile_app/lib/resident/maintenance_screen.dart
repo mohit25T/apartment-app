@@ -28,6 +28,10 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     _scrollController.addListener(_scrollListener);
   }
 
+  /* ===============================
+     SCROLL LISTENER
+  =============================== */
+
   void _scrollListener() {
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 200 &&
@@ -36,6 +40,10 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       loadMoreBills();
     }
   }
+
+  /* ===============================
+     FETCH FIRST PAGE
+  =============================== */
 
   Future<void> fetchBills() async {
     setState(() {
@@ -55,6 +63,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
       });
     } else {
       setState(() => loading = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response?["message"] ?? "Failed to load bills"),
@@ -64,10 +73,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     }
   }
 
+  /* ===============================
+     LOAD MORE
+  =============================== */
+
   Future<void> loadMoreBills() async {
     if (!hasMore) return;
 
     setState(() => isLoadingMore = true);
+
     currentPage++;
 
     final response = await ApiService.get(
@@ -84,11 +98,19 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     }
   }
 
+  /* ===============================
+     STATUS COLOR
+  =============================== */
+
   Color getStatusColor(String status) {
     if (status == "Paid") return Colors.green;
     if (status == "Pending") return Colors.orange;
     return Colors.red;
   }
+
+  /* ===============================
+     DUE REMINDER
+  =============================== */
 
   bool isDueInFiveDays(String? dueDateStr, String status) {
     if (dueDateStr == null || status != "Pending") return false;
@@ -102,33 +124,29 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     return difference >= 0 && difference <= 5;
   }
 
+  /* ===============================
+     SUMMARY CALCULATIONS
+  =============================== */
+
   int getTotalAmount() {
-    int total = 0;
-    for (var bill in bills) {
-      total += (bill["amount"] ?? 0) as int;
-    }
-    return total;
+    return bills.fold<int>(0, (sum, b) => sum + (b["amount"] as num).toInt());
   }
 
   int getPaidAmount() {
-    int total = 0;
-    for (var bill in bills) {
-      if (bill["status"] == "Paid") {
-        total += (bill["amount"] ?? 0) as int;
-      }
-    }
-    return total;
+    return bills
+        .where((b) => b["status"] == "Paid")
+        .fold<int>(0, (sum, b) => sum + (b["amount"] as num).toInt());
   }
 
   int getPendingAmount() {
-    int total = 0;
-    for (var bill in bills) {
-      if (bill["status"] != "Paid") {
-        total += (bill["amount"] ?? 0) as int;
-      }
-    }
-    return total;
+    return bills
+        .where((b) => b["status"] != "Paid")
+        .fold<int>(0, (sum, b) => sum + (b["amount"] as num).toInt());
   }
+
+  /* ===============================
+     SUMMARY CARD
+  =============================== */
 
   Widget summaryCard() {
     if (bills.isEmpty) return const SizedBox();
@@ -197,6 +215,10 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     super.dispose();
   }
 
+  /* ===============================
+     UI
+  =============================== */
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -211,13 +233,13 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
-                itemCount: bills.length + (hasMore ? 2 : 1),
+                itemCount: bills.length + 1 + (hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return summaryCard();
                   }
 
-                  if (index == bills.length + 1) {
+                  if (index > bills.length) {
                     return const Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(
@@ -227,6 +249,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   }
 
                   final bill = bills[index - 1];
+
                   final status = bill["status"] ?? "Pending";
                   final dueDate = bill["dueDate"];
                   final paidAt = bill["paidAt"];
@@ -258,12 +281,28 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                             fontSize: 16,
                           ),
                         ),
+
                         const SizedBox(height: 8),
+
+                        /// FLAT DISPLAY
+                        if (bill["flatNo"] != null)
+                          Text(
+                            "Flat: ${bill["flatNo"]}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+
+                        const SizedBox(height: 6),
+
                         Text(
                           "Amount: ₹${bill["amount"]}",
                           style: const TextStyle(fontSize: 15),
                         ),
+
                         const SizedBox(height: 6),
+
                         if (dueDate != null)
                           Text(
                             "Due: ${DateTime.parse(dueDate).toLocal().toString().split(" ")[0]}",
@@ -272,6 +311,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                   showReminder ? Colors.red : Colors.grey[700],
                             ),
                           ),
+
                         if (showReminder)
                           const Padding(
                             padding: EdgeInsets.only(top: 4),
@@ -284,6 +324,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                               ),
                             ),
                           ),
+
                         if (status == "Paid" && paidAt != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
@@ -294,6 +335,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                               ),
                             ),
                           ),
+
                         if (status == "Paid" && paymentMode != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
@@ -305,7 +347,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                               ),
                             ),
                           ),
+
                         const SizedBox(height: 10),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),

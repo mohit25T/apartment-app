@@ -17,6 +17,7 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
   final TextEditingController emailController = TextEditingController();
 
   String? flatNo;
+  String? wingNo;
   bool loading = false;
   bool loadingFlat = true;
 
@@ -31,6 +32,7 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
 
     if (response != null && response["success"] == true) {
       flatNo = response["user"]["flatNo"];
+      wingNo = response["user"]["wingNo"];
     }
 
     setState(() => loadingFlat = false);
@@ -48,6 +50,7 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
         "mobile": mobileController.text.trim(),
         "email": emailController.text.trim(),
         "flatNo": flatNo,
+        "wingNo": wingNo,
         "role": "TENANT"
       },
     );

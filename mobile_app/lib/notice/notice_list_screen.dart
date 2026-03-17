@@ -26,19 +26,19 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     final response = await ApiService.get("/notices");
 
     if (response != null && response["success"] == true) {
-      notices = response["data"];
+      notices = response["data"] ?? [];
     }
 
     setState(() => loading = false);
   }
 
-  Color getPriorityColor(String priority) {
+  Color getPriorityColor(String? priority) {
     switch (priority) {
-      case "HIGH":
+      case "URGENT":
         return Colors.red;
-      case "MEDIUM":
+      case "IMPORTANT":
         return Colors.orange;
-      case "LOW":
+      case "NORMAL":
         return Colors.green;
       default:
         return Colors.grey;
@@ -49,7 +49,12 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text("Notices")),
+
+      appBar: AppBar(
+        title: const Text("Notices"),
+        backgroundColor: AppColors.primary,
+      ),
+
       body: loading
           ? const Center(
               child: WalkingLoader(
@@ -70,7 +75,12 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                       padding: const EdgeInsets.all(16),
                       itemCount: notices.length,
                       itemBuilder: (context, index) {
+
                         final notice = notices[index];
+
+                        final title = notice["title"] ?? "";
+                        final message = notice["message"] ?? "";
+                        final priority = notice["priority"];
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -82,35 +92,36 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+
+                                /// TITLE + PRIORITY
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        notice["title"],
+                                        title,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
                                         ),
                                       ),
                                     ),
+
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 10,
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color:
-                                            getPriorityColor(notice["priority"])
-                                                .withOpacity(0.15),
+                                        color: getPriorityColor(priority)
+                                            .withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
-                                        notice["priority"],
+                                        priority ?? "NORMAL",
                                         style: TextStyle(
-                                          color: getPriorityColor(
-                                              notice["priority"]),
+                                          color: getPriorityColor(priority),
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -118,9 +129,12 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+
+                                const SizedBox(height: 10),
+
+                                /// MESSAGE
                                 Text(
-                                  notice["message"],
+                                  message,
                                   style: const TextStyle(
                                     color: Colors.grey,
                                   ),

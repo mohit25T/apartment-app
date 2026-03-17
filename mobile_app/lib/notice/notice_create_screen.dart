@@ -14,9 +14,13 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
   final titleController = TextEditingController();
   final messageController = TextEditingController();
 
-  String priority = "MEDIUM";
+  String priority = "NORMAL";
   DateTime? expiryDate;
   bool loading = false;
+
+  /* ===============================
+     PICK EXPIRY DATE
+  =============================== */
 
   Future<void> pickExpiryDate() async {
     final picked = await showDatePicker(
@@ -33,11 +37,16 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
     }
   }
 
+  /* ===============================
+     CREATE NOTICE
+  =============================== */
+
   Future<void> createNotice() async {
-    if (titleController.text.isEmpty || messageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("All fields required"),
-      ));
+    if (titleController.text.trim().isEmpty ||
+        messageController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("All fields required")),
+      );
       return;
     }
 
@@ -46,8 +55,8 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
     final response = await ApiService.post(
       "/notices",
       {
-        "title": titleController.text,
-        "message": messageController.text,
+        "title": titleController.text.trim(),
+        "message": messageController.text.trim(),
         "priority": priority,
         "expiresAt": expiryDate?.toIso8601String(),
       },
@@ -55,36 +64,77 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
 
     setState(() => loading = false);
 
-    if (response["success"] == true) {
+    if (response != null && response["success"] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Notice created successfully"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
       Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response?["message"] ?? "Failed to create notice"),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
   @override
+  void dispose() {
+    titleController.dispose();
+    messageController.dispose();
+    super.dispose();
+  }
+
+  /* ===============================
+     BUILD UI
+  =============================== */
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Create Notice")),
-      body: Padding(
+      backgroundColor: AppColors.background,
+
+      appBar: AppBar(
+        title: const Text("Create Notice"),
+        backgroundColor: AppColors.primary,
+      ),
+
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+
+            /// TITLE
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
                 labelText: "Title",
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 16),
+
+            /// MESSAGE
             TextField(
               controller: messageController,
-              maxLines: 3,
+              maxLines: 4,
               decoration: const InputDecoration(
                 labelText: "Message",
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField(
-              //value: priority,
+
+            const SizedBox(height: 16),
+
+            /// PRIORITY
+            DropdownButtonFormField<String>(
+              value: priority,
               items: const [
                 DropdownMenuItem(value: "NORMAL", child: Text("Normal")),
                 DropdownMenuItem(value: "IMPORTANT", child: Text("Important")),
@@ -93,28 +143,48 @@ class _NoticeCreateScreenState extends State<NoticeCreateScreen> {
               onChanged: (val) => setState(() => priority = val!),
               decoration: const InputDecoration(
                 labelText: "Priority",
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: pickExpiryDate,
-              child: Text(expiryDate == null
-                  ? "Pick Expiry Date"
-                  : expiryDate.toString().split(" ").first),
+
+            const SizedBox(height: 16),
+
+            /// EXPIRY DATE
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: pickExpiryDate,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                ),
+                child: Text(
+                  expiryDate == null
+                      ? "Pick Expiry Date"
+                      : expiryDate.toString().split(" ").first,
+                  style: const TextStyle(color: Colors.black),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 24),
+
+            /// CREATE BUTTON
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: loading ? null : createNotice,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
                 child: loading
-                    ? const WalkingLoader(
-                        size: 40,
-                        color: Colors.white,
-                      )
-                    : const Text("Create"),
+                    ? const WalkingLoader(size: 40, color: Colors.white)
+                    : const Text(
+                        "Create Notice",
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
-            )
+            ),
           ],
         ),
       ),

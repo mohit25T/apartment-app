@@ -29,8 +29,8 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   @override
   void initState() {
     super.initState();
-    loadCachedVisitors(); // 🔥 Load cached visitors first
-    loadVisitors(); // 🔥 Then refresh from API
+    loadCachedVisitors();
+    loadVisitors();
     _scrollController.addListener(_scrollListener);
   }
 
@@ -93,7 +93,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         loading = false;
       });
 
-      await saveVisitorsCache(visitors); // 🔥 Save to cache
+      await saveVisitorsCache(visitors);
     } else {
       setState(() => loading = false);
     }
@@ -120,7 +120,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
         isLoadingMore = false;
       });
 
-      await saveVisitorsCache(visitors); // 🔥 Update cache
+      await saveVisitorsCache(visitors);
     } else {
       setState(() => isLoadingMore = false);
     }
@@ -163,6 +163,17 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
       default:
         return Colors.black54;
     }
+  }
+
+  String getFlatDisplay(Map v) {
+    final wing = v["wing"];
+    final flat = v["flatNo"];
+
+    if (wing != null && flat != null) {
+      return "$wing-$flat";
+    }
+
+    return flat ?? "-";
   }
 
   @override
@@ -242,7 +253,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                               ),
                             ),
                             subtitle: Text(
-                              "Flat: ${v["flatNo"]}",
+                              "Flat: ${getFlatDisplay(v)}",
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary,

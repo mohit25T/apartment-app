@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
@@ -16,11 +16,15 @@ class NewVisitorScreen extends StatefulWidget {
 class _NewVisitorScreenState extends State<NewVisitorScreen> {
   bool loading = false;
   bool flatSelected = false;
+  bool wingSelected = false;
 
+  List wings = [];
   List flats = [];
+
+  String? selectedWing;
   String? selectedFlat;
 
-  XFile? visitorImage; // 🔥 CHANGED
+  XFile? visitorImage;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -30,8 +34,9 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
   final TextEditingController vehicleController = TextEditingController();
 
   /* ============================
-      PICK IMAGE (Camera Safe)
+      PICK IMAGE
   ============================ */
+
   Future<void> pickImage() async {
     final XFile? picked =
         await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
@@ -44,23 +49,39 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
   }
 
   /* ============================
-      FETCH FLATS
+      FETCH WINGS
   ============================ */
+
   Future<void> fetchFlats() async {
     setState(() => loading = true);
 
     final response = await ApiService.get("/visitors/flats");
 
-    if (response is List) {
-      flats = response;
+    if (response != null && response["type"] == "WINGS") {
+      wings = response["data"];
     }
 
     setState(() => loading = false);
   }
 
   /* ============================
+      FETCH FLATS OF WING
+  ============================ */
+
+  Future<void> fetchWingFlats() async {
+    final response = await ApiService.get("/visitors/flats?wing=$selectedWing");
+
+    if (response != null && response["type"] == "FLATS") {
+      flats = response["data"];
+    }
+
+    setState(() {});
+  }
+
+  /* ============================
       SUBMIT VISITOR
   ============================ */
+
   Future<void> submitVisitor() async {
     if (loading) return;
 
@@ -77,17 +98,21 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
 
     setState(() => loading = true);
 
+    final selectedFlatData =
+        flats.firstWhere((f) => f["flatNo"] == selectedFlat);
+
     final response = await ApiService.multipart(
       "/visitors/create",
       {
         "personName": nameController.text.trim(),
         "personMobile": mobileController.text.trim(),
+        "wing": selectedFlatData["wing"],
         "flatNo": selectedFlat,
         "purpose": purposeController.text.trim(),
         "vehicleNo": vehicleController.text.trim(),
         "entryType": "VISITOR",
       },
-      xFiles: [visitorImage!], // 🔥 CHANGED
+      xFiles: [visitorImage!],
       fileFieldName: "photo",
     );
 
@@ -95,7 +120,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
 
     if (response != null && response["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+        const SnackBar(
           content: Text("Visitor entry created successfully"),
           backgroundColor: Colors.green,
         ),
@@ -136,9 +161,60 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
           ? const Center(child: WalkingLoader(size: 60))
           : flatSelected
               ? visitorForm()
-              : flatSelection(),
+              : wingSelected
+                  ? flatSelection()
+                  : wingSelection(),
     );
   }
+
+  /* ============================
+      WING SELECTION
+  ============================ */
+
+  Widget wingSelection() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 1.5,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: wings.length,
+      itemBuilder: (context, index) {
+        final wing = wings[index]["wing"];
+
+        return InkWell(
+          onTap: () {
+            selectedWing = wing;
+            wingSelected = true;
+            fetchWingFlats();
+            setState(() {});
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                wing,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /* ============================
+      FLAT SELECTION
+  ============================ */
 
   Widget flatSelection() {
     return GridView.builder(
@@ -152,6 +228,9 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
       itemCount: flats.length,
       itemBuilder: (context, index) {
         final flatNo = flats[index]["flatNo"];
+        final wing = flats[index]["wing"];
+
+        final displayFlat = "$wing-$flatNo";
 
         return InkWell(
           onTap: () {
@@ -166,7 +245,7 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
             ),
             child: Center(
               child: Text(
-                flatNo,
+                displayFlat,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
@@ -179,6 +258,10 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
     );
   }
 
+  /* ============================
+      VISITOR FORM
+  ============================ */
+
   Widget visitorForm() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -189,11 +272,15 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
             child: CircleAvatar(
               radius: 55,
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage:
-                  visitorImage != null ? NetworkImage(visitorImage!.path) : null,
+              backgroundImage: visitorImage != null
+                  ? FileImage(File(visitorImage!.path))
+                  : null,
               child: visitorImage == null
-                  ? const Icon(Icons.camera_alt,
-                      size: 35, color: AppColors.primary)
+                  ? const Icon(
+                      Icons.camera_alt,
+                      size: 35,
+                      color: AppColors.primary,
+                    )
                   : null,
             ),
           ),
@@ -202,13 +289,24 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
           const SizedBox(height: 24),
           _buildTextField(nameController, "Visitor Name", Icons.person),
           const SizedBox(height: 16),
-          _buildTextField(mobileController, "Visitor Mobile", Icons.phone,
-              isPhone: true),
-          const SizedBox(height: 16),
-          _buildTextField(purposeController, "Purpose", Icons.assignment),
+          _buildTextField(
+            mobileController,
+            "Visitor Mobile",
+            Icons.phone,
+            isPhone: true,
+          ),
           const SizedBox(height: 16),
           _buildTextField(
-              vehicleController, "Vehicle Number", Icons.directions_car),
+            purposeController,
+            "Purpose",
+            Icons.assignment,
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            vehicleController,
+            "Vehicle Number",
+            Icons.directions_car,
+          ),
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: submitVisitor,
@@ -222,6 +320,10 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
       ),
     );
   }
+
+  /* ============================
+      INPUT FIELD
+  ============================ */
 
   Widget _buildTextField(
     TextEditingController controller,
