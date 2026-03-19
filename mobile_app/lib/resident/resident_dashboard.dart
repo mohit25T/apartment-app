@@ -284,6 +284,12 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                       Colors.indigo,
                       "/notices",
                     ),
+                    _buildFeatureCard(
+                      "Contacts",
+                      Icons.contact_phone_rounded,
+                      Colors.green,
+                      "/contacts",
+                    ),
 
                     _buildFeatureCard(
                       "Visitor\nHistory",

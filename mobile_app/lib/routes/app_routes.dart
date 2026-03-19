@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../admin/add_contact_screen.dart';
 import '../admin/admin_maintenance_list_screen.dart';
 import '../admin/admin_pending_tenants_screen.dart';
 import '../admin/admin_sos_list_screen.dart';
+import '../admin/subscription_screen.dart';
 import '../admin/vehicle_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/auth_check_screen.dart';
@@ -11,6 +13,7 @@ import '../admin/invite_residant.dart';
 import '../admin/invite_guard.dart';
 import '../admin/society_residents_guards_screen.dart';
 import '../admin/generate_maintenance_screen.dart';
+import '../common/contacts_screen.dart' show ContactsScreen;
 import '../complaint/complaint_admin_screen.dart';
 import '../complaint/complaint_create_screen.dart';
 import '../complaint/complaint_my_screen.dart';
@@ -37,6 +40,7 @@ import '../resident/vehicle_list_screen.dart';
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => const AuthCheckScreen(),
   '/login': (context) => const LoginScreen(),
+  '/subscription': (context) => const SubscriptionScreen(),
   '/otp': (context) => const OtpScreen(),
   '/guard': (context) => const GuardDashboard(),
   '/resident': (context) => const ResidentDashboard(),
@@ -70,4 +74,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/vehicle-search': (context) => const GuardVehicleSearchScreen(),
   '/resident-vehicles': (context) => const ResidentVehicleListScreen(),
   '/admin-sos': (context) => const AdminSOSListScreen(),
+  '/admin-contacts': (context) => const AddContactScreen(),
+  "/contacts": (context) => const ContactsScreen(),
 };

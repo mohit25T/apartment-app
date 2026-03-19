@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/resident/resident_dashboard.dart';
+
 import '../core/storage/role_storage.dart';
 import '../core/navigation/animation_navigation.dart';
 import '../profile/profile_screen.dart';
@@ -22,6 +23,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   bool loadingProfile = true;
 
+  // 🔥 Subscription states
+  bool subscriptionActive = true;
+  bool checkingSubscription = true;
+
   static const String profileCacheKey = "ADMIN_PROFILE_IMAGE";
 
   @override
@@ -30,6 +35,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     loadRoles();
     loadCachedProfile();
     fetchProfile();
+    checkSubscription(); // 🔥 NEW
   }
 
   Future<void> loadRoles() async {
@@ -41,7 +47,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
       roles = data;
     });
   }
-  
 
   Future<void> loadCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -55,10 +60,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  /* ===============================
-     FETCH PROFILE FROM API
-  =============================== */
-
+  // ===============================
+  // FETCH PROFILE
+  // ===============================
   Future<void> fetchProfile() async {
     try {
       final response = await ApiService.get("/users/profile");
@@ -95,6 +99,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
+  // ===============================
+  // 🔥 CHECK SUBSCRIPTION
+  // ===============================
+  Future<void> checkSubscription() async {
+    try {
+      final res = await ApiService.get("/subscriptions/my");
+
+      if (mounted) {
+        setState(() {
+          subscriptionActive = res != null;
+          checkingSubscription = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          subscriptionActive = false;
+          checkingSubscription = false;
+        });
+      }
+    }
+  }
+
   bool get canSwitch =>
       roles.contains("ADMIN") &&
       (roles.contains("OWNER") || roles.contains("TENANT"));
@@ -115,7 +142,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: Icon(Icons.admin_panel_settings, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -123,7 +149,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   "Admin Dashboard",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-
                 Text(
                   wing != null
                       ? "Wing $wing • Manage Society"
@@ -139,6 +164,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
 
         actions: [
+
+          // 🔥 SUBSCRIPTION BUTTON
+          if (!checkingSubscription)
+            IconButton(
+              tooltip: "Subscription",
+              icon: Icon(
+                Icons.workspace_premium_rounded,
+                color:
+                    subscriptionActive ? Colors.white : Colors.yellowAccent,
+              ),
+              onPressed: () {
+                Navigator.pushNamed(context, "/subscription")
+                    .then((_) => checkSubscription());
+              },
+            ),
+
+          // 👤 PROFILE BUTTON
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
@@ -167,7 +209,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             )
                           : null,
                       child: profileImage == null
-                          ? const Icon(Icons.person, color: AppColors.primary)
+                          ? const Icon(Icons.person,
+                              color: AppColors.primary)
                           : null,
                     ),
             ),
@@ -183,6 +226,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+
+                // 🔥 SUBSCRIPTION WARNING
+                if (!checkingSubscription && !subscriptionActive)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning, color: Colors.red),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            "Your subscription is inactive. Please subscribe.",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, "/subscription");
+                          },
+                          child: const Text("Subscribe"),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 if (canSwitch) _buildSwitchModeCard(),
 
@@ -277,11 +350,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Colors.indigo,
                       "/notices",
                     ),
+
                     _buildActionCard(
                       "Manage\nVehicles",
                       Icons.directions_car,
                       Colors.deepPurple,
                       "/admin-vehicles",
+                    ),
+
+                    _buildActionCard(
+                      "Manage\nContacts",
+                      Icons.contact_phone_rounded,
+                      Colors.green,
+                      "/admin-contacts",
                     ),
                   ],
                 ),
@@ -311,21 +392,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.teal.shade400, Colors.teal.shade700],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.home_rounded, color: Colors.white),
-        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: const Icon(Icons.home_rounded, color: Colors.white),
         title: const Text(
           "Switch to Personal Mode",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -367,14 +440,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 32),
-            ),
+            Icon(icon, color: color, size: 32),
             const SizedBox(height: 12),
             Text(
               title,
@@ -382,7 +448,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
               ),
             ),
           ],

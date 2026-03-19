@@ -235,6 +235,15 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   color: Colors.purpleAccent,
                   route: "/visitors",
                 ),
+                
+                _buildActionCard(
+                  context,
+                  title: "Contacts",
+                  subtitle: "Call emergency & society contacts",
+                  icon: Icons.contact_phone_rounded,
+                  color: Colors.green,
+                  route: "/contacts",
+                ),
 
                 _buildActionCard(
                   context,

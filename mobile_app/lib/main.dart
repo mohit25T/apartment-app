@@ -91,7 +91,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
     /// Start internet checker AFTER UI is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
       InternetChecker.startListening(navigatorKey);

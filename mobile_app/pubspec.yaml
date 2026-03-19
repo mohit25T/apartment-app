@@ -12,28 +12,44 @@ dependencies:
   flutter:
     sdk: flutter
 
-  connectivity_plus: ^7.0.0
   cupertino_icons: ^1.0.8
-  image_picker: ^1.0.7
 
+  # 🌐 Internet & API
+  connectivity_plus: ^7.0.0
   http: ^1.2.0
+
+  # 📦 State Management
   provider: ^6.1.2
+
+  # 💾 Local Storage
   shared_preferences: ^2.2.2
+
+  # 🔗 External links
   url_launcher: ^6.3.2
 
+  # 📸 Media
+  image_picker: ^1.0.7
+
+  # 🔥 Firebase
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.0
+
+  # 🔔 Notifications
   flutter_local_notifications: ^17.2.1
+
+  # 🌍 Date formatting
   intl: ^0.20.2
 
   # 🔊 SOS Alarm
   audioplayers: ^6.0.0
   vibration: ^3.1.8
 
+  # 💳 Payments
+  razorpay_flutter: ^1.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^3.0.1
 
 flutter:
