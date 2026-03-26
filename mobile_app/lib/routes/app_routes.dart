@@ -4,6 +4,7 @@ import '../admin/admin_maintenance_list_screen.dart';
 import '../admin/admin_pending_tenants_screen.dart';
 import '../admin/admin_sos_list_screen.dart';
 import '../admin/subscription_screen.dart';
+import '../admin/upgrade_subscription.dart';
 import '../admin/vehicle_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/auth_check_screen.dart';
@@ -76,4 +77,5 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/admin-sos': (context) => const AdminSOSListScreen(),
   '/admin-contacts': (context) => const AddContactScreen(),
   "/contacts": (context) => const ContactsScreen(),
+  '/upgrade-subscription': (context) => const UpgradeSubscriptionScreen(),
 };

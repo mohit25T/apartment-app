@@ -18,6 +18,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   String selectedPlan = "monthly";
 
+  bool isUpgrade = false;
+
   late Razorpay _razorpay;
 
   @override
@@ -45,13 +47,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     setState(() => loading = true);
 
     final res =
-        await ApiService.get("/subscriptions/preview?plan=$selectedPlan");
-
-    print("PREVIEW DATA: $res"); // 🔥 debug
+        await ApiService.get("/subscription/preview?plan=$selectedPlan");
 
     if (res != null) {
       setState(() {
         preview = res;
+        isUpgrade = res["isUpgrade"] ?? false; // 🔥 IMPORTANT
         loading = false;
       });
     }
@@ -62,13 +63,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   // ===============================
   Future<void> createOrder() async {
     final res = await ApiService.post(
-      "/subscriptions/order",
-      {"plan": selectedPlan},
+      "/subscription/create-order",
+      {
+        "plan": selectedPlan,
+      },
     );
 
-    print("ORDER RESPONSE: $res"); // 🔥 debug
-
     if (res != null && res["order"] != null) {
+      isUpgrade = res["isUpgrade"] ?? false;
       openRazorpay(res["order"]);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,56 +80,34 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   // ===============================
-  // 🔥 Open Razorpay (FIXED)
+  // 🔥 Open Razorpay
   // ===============================
   void openRazorpay(Map order) {
-    print("OPENING RAZORPAY: $order"); // 🔥 debug
-
     var options = {
-      'key': 'rzp_test_SSLQR9ipXUzrd3', // 🔥 PUT YOUR REAL KEY HERE
-      'amount': order["amount"], // must be in paise
+      'key': 'rzp_test_SSLQR9ipXUzrd3',
+      'amount': order["amount"],
       'currency': 'INR',
-
-      // 🔥 IMPORTANT DETAILS
       'name': 'Apartment App',
-      'description': 'Society Subscription',
+      'description':
+          isUpgrade ? 'Upgrade Subscription' : 'Society Subscription',
       'order_id': order["id"],
-
-      // 🔥 THIS FIXES MOST ERRORS
       'timeout': 300,
-
-      // 🔥 NEVER KEEP EMPTY
       'prefill': {
         'contact': '9876543210',
         'email': 'test@razorpay.com',
       },
-
-      // 🔥 Helps avoid failure
-      // 'external': {
-      //   'wallets': ['paytm', 'phonepe', 'googlepay']
-      // },
-
-      // 🎨 Theme
-      'theme': {
-        'color': '#1976D2',
-      }
+      'theme': {'color': '#1976D2'}
     };
 
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      print("RAZORPAY OPEN ERROR: $e");
-    }
+    _razorpay.open(options);
   }
 
   // ===============================
   // ✅ Payment Success
   // ===============================
   void handlePaymentSuccess(PaymentSuccessResponse response) async {
-    print("PAYMENT SUCCESS: ${response.paymentId}");
-
     final res = await ApiService.post(
-      "/subscriptions/verify",
+      "/subscription/verify-payment",
       {
         "razorpay_order_id": response.orderId,
         "razorpay_payment_id": response.paymentId,
@@ -138,7 +118,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     if (res != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Subscription Activated 🎉")),
+        SnackBar(
+          content: Text(
+            isUpgrade
+                ? "Subscription Upgraded 🎉"
+                : "Subscription Activated 🎉",
+          ),
+        ),
       );
 
       Navigator.pop(context);
@@ -149,8 +135,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   // ❌ Payment Error
   // ===============================
   void handlePaymentError(PaymentFailureResponse response) {
-    print("PAYMENT ERROR: ${response.message}");
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Payment Failed: ${response.message}")),
     );
@@ -163,103 +147,67 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text("Subscription"),
-        backgroundColor: AppColors.primary,
-      ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-
-                  // 📊 Info Card
-                  Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 220,
+                  pinned: true,
+                  backgroundColor: AppColors.primary,
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    title: Text(
+                      isUpgrade ? "Upgrade Plan" : "Premium Plan",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
+                    centerTitle: true,
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        // 🔥 SHOW EXTRA FLATS IF UPGRADE
+                        if (isUpgrade) ...[
                           Text(
-                            "${preview?["totalFlats"] ?? 0} Flats",
+                            "New Flats Detected: ${preview?["extraFlats"] ?? 0}",
                             style: const TextStyle(
-                              fontSize: 22,
+                              color: Colors.red,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "₹${preview?["pricePerFlat"] ?? 0} / flat",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "Total: ₹${preview?["totalAmount"] ?? 0}",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          const SizedBox(height: 20),
                         ],
-                      ),
+
+                        // 📊 SUMMARY
+                        Text("Flats: ${preview?["totalFlats"] ?? 0}"),
+                        Text("Price/Flat: ₹${preview?["pricePerFlat"] ?? 0}"),
+                        Text("Total: ₹${preview?["totalAmount"] ?? 0}"),
+
+                        const SizedBox(height: 40),
+
+                        // 💳 BUTTON
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: createOrder,
+                            child: Text(
+                              isUpgrade ? "Upgrade Now" : "Subscribe Now",
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // 🔄 Plan Selector
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text("Monthly"),
-                          selected: selectedPlan == "monthly",
-                          onSelected: (_) {
-                            setState(() => selectedPlan = "monthly");
-                            loadPreview();
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ChoiceChip(
-                          label: const Text("Yearly"),
-                          selected: selectedPlan == "yearly",
-                          onSelected: (_) {
-                            setState(() => selectedPlan = "yearly");
-                            loadPreview();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // 💳 Subscribe Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: createOrder,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        "Subscribe Now",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
     );
   }

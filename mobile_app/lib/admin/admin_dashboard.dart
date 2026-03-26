@@ -7,6 +7,7 @@ import '../core/navigation/animation_navigation.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
+import 'my_subscription_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -24,8 +25,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   bool loadingProfile = true;
 
   // 🔥 Subscription states
-  bool subscriptionActive = true;
+  bool subscriptionActive = false;
   bool checkingSubscription = true;
+
+  int usedFlats = 0;
+  int allowedFlats = 0;
+  int extraFlats = 0;
 
   static const String profileCacheKey = "ADMIN_PROFILE_IMAGE";
 
@@ -35,12 +40,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     loadRoles();
     loadCachedProfile();
     fetchProfile();
-    checkSubscription(); // 🔥 NEW
+    checkSubscription();
   }
 
   Future<void> loadRoles() async {
     final data = await RoleStorage.getRoles();
-
     if (!mounted) return;
 
     setState(() {
@@ -100,16 +104,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   // ===============================
-  // 🔥 CHECK SUBSCRIPTION
+  // 🔥 CHECK SUBSCRIPTION (FIXED)
   // ===============================
   Future<void> checkSubscription() async {
     try {
-      final res = await ApiService.get("/subscriptions/my");
+      final res = await ApiService.get("/subscription/me");
+      final preview = await ApiService.get("/subscription/preview");
+
+      bool isActive = false;
+
+      if (res != null) {
+        final status = res["status"]?.toString().toLowerCase();
+        final endDateStr = res["endDate"];
+
+        if (status == "active" && endDateStr != null) {
+          final endDate = DateTime.parse(endDateStr);
+          isActive = endDate.isAfter(DateTime.now());
+        }
+      }
 
       if (mounted) {
         setState(() {
-          subscriptionActive = res != null;
+          subscriptionActive = isActive;
           checkingSubscription = false;
+          usedFlats = preview?["totalFlatsInDB"] ?? 0;
+          allowedFlats = preview?["allowedFlats"] ?? 0;
+          extraFlats = preview?["extraFlats"] ?? 0;
         });
       }
     } catch (e) {
@@ -164,23 +184,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
 
         actions: [
-
-          // 🔥 SUBSCRIPTION BUTTON
           if (!checkingSubscription)
             IconButton(
               tooltip: "Subscription",
               icon: Icon(
                 Icons.workspace_premium_rounded,
-                color:
-                    subscriptionActive ? Colors.white : Colors.yellowAccent,
+                color: subscriptionActive ? Colors.amberAccent : Colors.white,
               ),
               onPressed: () {
-                Navigator.pushNamed(context, "/subscription")
-                    .then((_) => checkSubscription());
+                if (subscriptionActive) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const MySubscriptionScreen()),
+                  ).then((_) => checkSubscription());
+                } else {
+                  Navigator.pushNamed(context, "/subscription")
+                      .then((_) => checkSubscription());
+                }
               },
             ),
 
-          // 👤 PROFILE BUTTON
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
@@ -203,10 +227,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       radius: 20,
                       backgroundColor: Colors.white,
                       backgroundImage: profileImage != null
-                          ? NetworkImage(
-                              profileImage! +
-                                  "?t=${DateTime.now().millisecondsSinceEpoch}",
-                            )
+                          ? NetworkImage(profileImage!)
                           : null,
                       child: profileImage == null
                           ? const Icon(Icons.person,
@@ -227,35 +248,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               padding: const EdgeInsets.all(20),
               children: [
 
-                // 🔥 SUBSCRIPTION WARNING
-                if (!checkingSubscription && !subscriptionActive)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning, color: Colors.red),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            "Your subscription is inactive. Please subscribe.",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, "/subscription");
-                          },
-                          child: const Text("Subscribe"),
-                        ),
-                      ],
-                    ),
-                  ),
+                // ✅ ONLY ONE BANNER
+                if (!checkingSubscription) _buildUpgradeCard(),
 
                 if (canSwitch) _buildSwitchModeCard(),
 
@@ -280,90 +274,45 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.1,
                   children: [
-
+                    _buildActionCard("SOS\nAlerts", Icons.warning_rounded,
+                        Colors.red, "/admin-sos"),
                     _buildActionCard(
-                      "SOS\nAlerts",
-                      Icons.warning_rounded,
-                      Colors.red,
-                      "/admin-sos",
-                    ),
-
+                        "Generate\nMaintenance",
+                        Icons.receipt_long_rounded,
+                        Colors.deepPurple,
+                        "/generate-maintenance"),
+                    _buildActionCard("All\nMaintenance", Icons.list_alt_rounded,
+                        Colors.teal, "/admin-maintenance-list"),
                     _buildActionCard(
-                      "Generate\nMaintenance",
-                      Icons.receipt_long_rounded,
-                      Colors.deepPurple,
-                      "/generate-maintenance",
-                    ),
-
+                        "Invite\nResident",
+                        Icons.group_add_rounded,
+                        Colors.blueAccent,
+                        "/invite-resident"),
                     _buildActionCard(
-                      "All\nMaintenance",
-                      Icons.list_alt_rounded,
-                      Colors.teal,
-                      "/admin-maintenance-list",
-                    ),
-
+                        "Pending\nTenants",
+                        Icons.person_add_alt_1_rounded,
+                        Colors.redAccent,
+                        "/pending-tenants"),
+                    _buildActionCard("Manage\nUsers", Icons.groups_rounded,
+                        Colors.orangeAccent, "/society-users"),
+                    _buildActionCard("Invite\nGuard", Icons.security_rounded,
+                        Colors.green, "/invite-guard"),
                     _buildActionCard(
-                      "Invite\nResident",
-                      Icons.group_add_rounded,
-                      Colors.blueAccent,
-                      "/invite-resident",
-                    ),
-
+                        "Manage\nComplaints",
+                        Icons.admin_panel_settings_rounded,
+                        Colors.red,
+                        "/admin-complaints"),
+                    _buildActionCard("Create\nNotice", Icons.post_add_rounded,
+                        Colors.blue, "/create-notice"),
+                    _buildActionCard("View\nNotices", Icons.campaign_rounded,
+                        Colors.indigo, "/notices"),
+                    _buildActionCard("Manage\nVehicles", Icons.directions_car,
+                        Colors.deepPurple, "/admin-vehicles"),
                     _buildActionCard(
-                      "Pending\nTenants",
-                      Icons.person_add_alt_1_rounded,
-                      Colors.redAccent,
-                      "/pending-tenants",
-                    ),
-
-                    _buildActionCard(
-                      "Manage\nUsers",
-                      Icons.groups_rounded,
-                      Colors.orangeAccent,
-                      "/society-users",
-                    ),
-
-                    _buildActionCard(
-                      "Invite\nGuard",
-                      Icons.security_rounded,
-                      Colors.green,
-                      "/invite-guard",
-                    ),
-
-                    _buildActionCard(
-                      "Manage\nComplaints",
-                      Icons.admin_panel_settings_rounded,
-                      Colors.red,
-                      "/admin-complaints",
-                    ),
-
-                    _buildActionCard(
-                      "Create\nNotice",
-                      Icons.post_add_rounded,
-                      Colors.blue,
-                      "/create-notice",
-                    ),
-
-                    _buildActionCard(
-                      "View\nNotices",
-                      Icons.campaign_rounded,
-                      Colors.indigo,
-                      "/notices",
-                    ),
-
-                    _buildActionCard(
-                      "Manage\nVehicles",
-                      Icons.directions_car,
-                      Colors.deepPurple,
-                      "/admin-vehicles",
-                    ),
-
-                    _buildActionCard(
-                      "Manage\nContacts",
-                      Icons.contact_phone_rounded,
-                      Colors.green,
-                      "/admin-contacts",
-                    ),
+                        "Manage\nContacts",
+                        Icons.contact_phone_rounded,
+                        Colors.green,
+                        "/admin-contacts"),
                   ],
                 ),
               ],
@@ -374,6 +323,98 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // ===============================
+  // 🔥 SINGLE SMART BANNER
+  // ===============================
+  Widget _buildUpgradeCard() {
+    final hasSubscription = subscriptionActive;
+    final isLimitReached = hasSubscription && usedFlats > allowedFlats;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: !hasSubscription
+            ? Colors.red.shade50
+            : isLimitReached
+                ? Colors.red.shade50
+                : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: !hasSubscription
+              ? Colors.red
+              : isLimitReached
+                  ? Colors.red
+                  : Colors.orange,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.workspace_premium,
+            color: !hasSubscription
+                ? Colors.red
+                : isLimitReached
+                    ? Colors.red
+                    : Colors.orange,
+          ),
+          const SizedBox(width: 10),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!hasSubscription)
+                  const Text(
+                    "No active subscription. Please subscribe.",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  )
+                else ...[
+                  // ✅ FIXED (NO preview)
+                  Text(
+                    "$usedFlats / $allowedFlats Flats Used",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+
+                  if (extraFlats > 0)
+                    Text(
+                      "$extraFlats extra flat(s) not covered ⚠",
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                ],
+              ],
+            ),
+          ),
+
+          TextButton(
+            onPressed: () {
+              if (!subscriptionActive) {
+                Navigator.pushNamed(context, "/subscription");
+              } else if (usedFlats > allowedFlats) {
+                Navigator.pushNamed(context, "/upgrade-subscription");
+              }
+              else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const MySubscriptionScreen()),
+                );
+              }
+            },
+            child: Text(!hasSubscription
+                ? "Subscribe"
+                : (usedFlats > allowedFlats)
+                    ? "Upgrade"
+                    : "View"),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),

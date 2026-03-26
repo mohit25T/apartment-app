@@ -22,6 +22,9 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
   // Admin can invite only OWNER
   String selectedRole = "OWNER";
 
+  // ===============================
+  // 🔥 INVITE FUNCTION (UPDATED)
+  // ===============================
   Future<void> inviteResident() async {
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
@@ -52,27 +55,85 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
 
     setState(() => loading = false);
 
-    if (response != null && response["message"] != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response["message"]),
-          backgroundColor: Colors.green,
-        ),
-      );
+    if (response != null && response["success"] == true) {
+      final upgradeRequired = response["upgradeRequired"] == true;
 
+      // ✅ Clear fields
       nameController.clear();
       emailController.clear();
       mobileController.clear();
       flatController.clear();
       wingController.clear();
+
+      // ✅ Redirect back (Dashboard)
+      Navigator.pop(context);
+
+      // 🔥 Delay ensures dashboard loads before popup
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (upgradeRequired) {
+          _showUpgradePopup();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response["message"] ?? "Invite sent successfully"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      });
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Something went wrong"),
+        SnackBar(
+          content: Text(response?["message"] ?? "Something went wrong"),
           backgroundColor: AppColors.error,
         ),
       );
     }
+  }
+
+  // ===============================
+  // 🔥 UPGRADE POPUP
+  // ===============================
+  void _showUpgradePopup() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.workspace_premium, color: Colors.orange),
+              SizedBox(width: 10),
+              Text("Upgrade Required"),
+            ],
+          ),
+          content: const Text(
+            "You have exceeded your flat limit.\n\nUpgrade your subscription to continue using all features.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Later"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/subscription");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text("Upgrade Now"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -114,8 +175,10 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
+
             _buildTextField(nameController, "Full Name", Icons.person_outline),
             const SizedBox(height: 16),
+
             _buildTextField(
               emailController,
               "Email Address",
@@ -123,6 +186,7 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
+
             _buildTextField(
               wingController,
               "Wing (A/B/C)",
@@ -130,11 +194,13 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               maxLength: 1,
             ),
             const SizedBox(height: 16),
+
             _buildTextField(
-              flatController, 
+              flatController,
               "Flat Number (e.g. 203)",
               Icons.home_outlined,
             ),
+
             _buildTextField(
               mobileController,
               "Mobile Number",
@@ -142,7 +208,9 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               keyboardType: TextInputType.phone,
               maxLength: 10,
             ),
+
             const SizedBox(height: 40),
+
             SizedBox(
               width: double.infinity,
               height: 50,

@@ -8,9 +8,9 @@ import 'core/theme/app_theme.dart';
 import 'routes/app_routes.dart';
 import 'services/local_notification_service.dart';
 import 'services/notification_service.dart';
-import 'core/navigation/navigation_service.dart';
+import 'core/navigation/navigation_service.dart'; // ✅ USING SAME KEY
 import 'core/network/internet_checker.dart';
-import 'core/services/sos_alarm_service.dart'; // 🔥 ADD THIS
+import 'core/services/sos_alarm_service.dart';
 
 /// =================================
 /// BACKGROUND NOTIFICATION HANDLER
@@ -50,15 +50,15 @@ void main() async {
     /// 🚨 SOS ALERT
     if (data["type"] == "SOS_ALERT") {
 
-      // 🔊 PLAY SIREN (bypass silent mode)
+      // 🔊 PLAY SIREN
       await SOSAlarmService.playAlarm();
 
-      // 📳 START VIBRATION
+      // 📳 VIBRATION
       if (await Vibration.hasVibrator() ?? false) {
         Vibration.vibrate(pattern: [0, 1000, 500, 1000], duration: 1000);
       }
 
-      // 🚨 SHOW SOS NOTIFICATION (custom channel)
+      // 🚨 SHOW SOS NOTIFICATION
       await LocalNotificationService.showSOSNotification(
         notification?.title ?? "🚨 SOS Emergency",
         notification?.body ?? "Emergency Alert",
@@ -88,10 +88,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+
   @override
   void initState() {
     super.initState();
-    /// Start internet checker AFTER UI is ready
+
+    /// 🌐 INTERNET CHECKER
     WidgetsBinding.instance.addPostFrameCallback((_) {
       InternetChecker.startListening(navigatorKey);
     });
@@ -100,7 +102,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,
+      navigatorKey: navigatorKey, // 🔥 SAME KEY USED EVERYWHERE
       debugShowCheckedModeBanner: false,
       title: 'Door Pass',
       theme: AppTheme.lightTheme,

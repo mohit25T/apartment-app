@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart'; // 🔥 NEW
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,7 +12,65 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 import '../storage/token_storage.dart';
 
+// 🔥 GLOBAL NAVIGATOR
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class ApiService {
+
+  // 🔥 Prevent multiple dialogs
+  static bool _isUpgradeDialogOpen = false;
+
+  /// =====================================================
+  /// 🔥 GLOBAL UPGRADE HANDLER (NEW)
+  /// =====================================================
+  static void _handleUpgrade(dynamic data) {
+    if (data == null) return;
+
+    if (data["upgradeRequired"] == true && !_isUpgradeDialogOpen) {
+      _isUpgradeDialogOpen = true;
+
+      final context = navigatorKey.currentContext;
+      if (context == null) return;
+
+      showDialog(
+        context: context,
+        builder: (_) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.workspace_premium, color: Colors.orange),
+                SizedBox(width: 10),
+                Text("Upgrade Required"),
+              ],
+            ),
+            content: const Text(
+              "Your plan limit is exceeded.\n\nUpgrade your subscription to continue.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _isUpgradeDialogOpen = false;
+                },
+                child: const Text("Later"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _isUpgradeDialogOpen = false;
+                  navigatorKey.currentState?.pushNamed("/subscription");
+                },
+                child: const Text("Upgrade Now"),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
 
   /// =====================================================
   /// 🌐 INTERNET CHECK
@@ -59,7 +118,6 @@ class ApiService {
   /// =====================================================
   /// ================= CACHE HELPERS =================
   /// =====================================================
-
   static Future<void> _saveCache(String key, dynamic data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -137,7 +195,11 @@ class ApiService {
       }
     }
 
-    return jsonDecode(response.body);
+    final data = jsonDecode(response.body);
+
+    _handleUpgrade(data); // 🔥 ADDED
+
+    return data;
   }
 
   /// =====================================================
@@ -174,6 +236,8 @@ class ApiService {
       }
 
       final data = jsonDecode(response.body);
+
+      _handleUpgrade(data); // 🔥 ADDED
 
       await _saveCache(cacheKey, data);
 
@@ -216,14 +280,11 @@ class ApiService {
       body: jsonEncode(body),
     );
 
-    if (response.statusCode == 401) {
-      final refreshed = await refreshToken();
-      if (refreshed) {
-        return put(endpoint, body);
-      }
-    }
+    final data = jsonDecode(response.body);
 
-    return jsonDecode(response.body);
+    _handleUpgrade(data); // 🔥 ADDED
+
+    return data;
   }
 
   /// =====================================================
@@ -249,14 +310,11 @@ class ApiService {
       body: body != null ? jsonEncode(body) : null,
     );
 
-    if (response.statusCode == 401) {
-      final refreshed = await refreshToken();
-      if (refreshed) {
-        return patch(endpoint, body: body);
-      }
-    }
+    final data = jsonDecode(response.body);
 
-    return jsonDecode(response.body);
+    _handleUpgrade(data); // 🔥 ADDED
+
+    return data;
   }
 
   /// =====================================================
@@ -320,19 +378,11 @@ class ApiService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 401) {
-        final refreshed = await refreshToken();
-        if (refreshed) {
-          return multipart(endpoint, fields,
-              xFiles: xFiles, fileFieldName: fileFieldName);
-        }
-      }
+      final data = jsonDecode(response.body);
 
-      if (response.body.isEmpty) {
-        return {"error": true, "message": "Empty server response"};
-      }
+      _handleUpgrade(data); // 🔥 ADDED
 
-      return jsonDecode(response.body);
+      return data;
 
     } catch (e) {
       debugPrint("MULTIPART ERROR => $e");
@@ -363,18 +413,10 @@ class ApiService {
       body: body != null ? jsonEncode(body) : null,
     );
 
-    if (response.statusCode == 401) {
-      final refreshed = await refreshToken();
-      if (refreshed) {
-        return delete(endpoint, body: body);
-      }
-    }
+    final data = jsonDecode(response.body);
 
-    if (response.body.isEmpty) {
-      return {"error": true, "message": "Empty server response"};
-    }
+    _handleUpgrade(data); // 🔥 ADDED
 
-    return jsonDecode(response.body);
+    return data;
   }
-
 }
