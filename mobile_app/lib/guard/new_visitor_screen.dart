@@ -152,10 +152,9 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("New Visitor Entry"),
-        backgroundColor: AppColors.primary,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
@@ -193,16 +192,16 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Text(
                 wing,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: AppColors.primary,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ),
@@ -240,15 +239,15 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: Text(
                 displayFlat,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ),
@@ -271,15 +270,15 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
             onTap: pickImage,
             child: CircleAvatar(
               radius: 55,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
               backgroundImage: visitorImage != null
                   ? FileImage(File(visitorImage!.path))
                   : null,
               child: visitorImage == null
-                  ? const Icon(
+                  ? Icon(
                       Icons.camera_alt,
                       size: 35,
-                      color: AppColors.primary,
+                      color: Theme.of(context).primaryColor,
                     )
                   : null,
             ),
@@ -311,7 +310,6 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
           ElevatedButton(
             onPressed: submitVisitor,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
               minimumSize: const Size(double.infinity, 50),
             ),
             child: const Text("Create Visitor Entry"),
@@ -338,10 +336,9 @@ class _NewVisitorScreenState extends State<NewVisitorScreen> {
       maxLength: isPhone ? 10 : null,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(icon),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
         counterText: "",
       ),
     );

@@ -97,9 +97,8 @@ class _AdminPendingTenantsScreenState extends State<AdminPendingTenantsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: const Text("Pending Tenant Requests"),
       ),
       body: loading
@@ -126,7 +125,7 @@ class _AdminPendingTenantsScreenState extends State<AdminPendingTenantsScreen> {
                         margin: const EdgeInsets.only(bottom: 16),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
@@ -141,7 +140,6 @@ class _AdminPendingTenantsScreenState extends State<AdminPendingTenantsScreen> {
                             Row(
                               children: [
                                 const CircleAvatar(
-                                  backgroundColor: AppColors.primary,
                                   child: Icon(
                                     Icons.person,
                                     color: Colors.white,

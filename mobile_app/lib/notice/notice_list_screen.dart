@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
 import '../core/widgets/walking_loader.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/fade_in_slide.dart';
+import '../core/services/socket_service.dart';
+import 'dart:async';
 
 class NoticeListScreen extends StatefulWidget {
   const NoticeListScreen({super.key});
@@ -13,11 +16,22 @@ class NoticeListScreen extends StatefulWidget {
 class _NoticeListScreenState extends State<NoticeListScreen> {
   bool loading = true;
   List notices = [];
+  StreamSubscription? _socketSub;
 
   @override
   void initState() {
     super.initState();
     fetchNotices();
+
+    _socketSub = SocketService().noticeStream.listen((_) {
+      fetchNotices();
+    });
+  }
+
+  @override
+  void dispose() {
+    _socketSub?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchNotices() async {
@@ -48,18 +62,25 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Notices"),
-        backgroundColor: AppColors.primary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
 
       body: loading
           ? const Center(
               child: WalkingLoader(
                 size: 60,
-                color: AppColors.primary,
               ),
             )
           : RefreshIndicator(
@@ -82,64 +103,67 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
                         final message = notice["message"] ?? "";
                         final priority = notice["priority"];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                        return FadeInSlide(
+                          delay: index * 0.05,
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
 
-                                /// TITLE + PRIORITY
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                  /// TITLE + PRIORITY
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
                                         ),
                                       ),
-                                    ),
 
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: getPriorityColor(priority)
-                                            .withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        priority ?? "NORMAL",
-                                        style: TextStyle(
-                                          color: getPriorityColor(priority),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: getPriorityColor(priority)
+                                              .withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          priority ?? "NORMAL",
+                                          style: TextStyle(
+                                            color: getPriorityColor(priority),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 10),
-
-                                /// MESSAGE
-                                Text(
-                                  message,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                    ],
                                   ),
-                                ),
-                              ],
+
+                                  const SizedBox(height: 10),
+
+                                  /// MESSAGE
+                                  Text(
+                                    message,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

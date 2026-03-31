@@ -54,6 +54,7 @@ class _AdminSOSListScreenState extends State<AdminSOSListScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("SOS Alerts"),
       ),

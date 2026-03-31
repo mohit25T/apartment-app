@@ -180,10 +180,9 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Delivery Entry"),
-        backgroundColor: AppColors.primary,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
@@ -198,7 +197,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
                     ),
                   ),
 
@@ -230,16 +228,16 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
                               child: Text(
                                 wing,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                             ),
@@ -273,15 +271,15 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
                               child: Text(
                                 flat,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                             ),
@@ -302,18 +300,18 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade200,
-                          border: Border.all(color: Colors.grey.shade400),
+                          color: Theme.of(context).cardColor,
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: deliveryImage == null
-                            ? const Center(
+                            ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.camera_alt,
-                                        size: 40, color: AppColors.primary),
-                                    SizedBox(height: 8),
-                                    Text("Capture Delivery Photo"),
+                                        size: 40, color: Theme.of(context).primaryColor),
+                                    const SizedBox(height: 8),
+                                    const Text("Capture Delivery Photo"),
                                   ],
                                 ),
                               )
@@ -349,12 +347,9 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                       maxLength: 10,
                       decoration: InputDecoration(
                         labelText: "Delivery Person Mobile",
-                        prefixIcon: const Icon(Icons.phone_android,
-                            color: AppColors.primary),
+                        prefixIcon: const Icon(Icons.phone_android),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        fillColor: Colors.white,
                         counterText: "",
                       ),
                     ),
@@ -364,12 +359,12 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                     TextField(
                       decoration: InputDecoration(
                         labelText: "Parcel Type (optional)",
-                        prefixIcon: const Icon(Icons.inventory_2,
-                            color: AppColors.primary),
+                        prefixIcon: Icon(Icons.inventory_2,
+                            color: Theme.of(context).primaryColor),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                       ),
                       onChanged: (val) {
                         parcelType = val;
@@ -384,7 +379,6 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
                       child: ElevatedButton(
                         onPressed: loading ? null : createDelivery,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
@@ -416,9 +410,9 @@ class _DeliveryEntryScreenState extends State<DeliveryEntryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class MaintenanceScreen extends StatefulWidget {
   const MaintenanceScreen({super.key});
@@ -151,60 +152,67 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   Widget summaryCard() {
     if (bills.isEmpty) return const SizedBox();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          )
-        ],
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "Maintenance Summary",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Column(
-                children: [
-                  Text("₹${getTotalAmount()}",
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
-                  const Text("Total"),
-                ],
+    return FadeInSlide(
+      delay: 0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              "Maintenance Summary",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
-              Column(
-                children: [
-                  Text("₹${getPaidAmount()}",
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green)),
-                  const Text("Paid"),
-                ],
-              ),
-              Column(
-                children: [
-                  Text("₹${getPendingAmount()}",
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red)),
-                  const Text("Pending"),
-                ],
-              ),
-            ],
-          )
-        ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    Text("₹${getTotalAmount()}",
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text("Total"),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text("₹${getPaidAmount()}",
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green)),
+                    const Text("Paid"),
+                  ],
+                ),
+                Column(
+                  children: [
+                    Text("₹${getPendingAmount()}",
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red)),
+                    const Text("Pending"),
+                  ],
+                ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
@@ -222,8 +230,10 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text("Maintenance Bills")),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("Maintenance Bills"),
+      ),
       body: loading
           ? const Center(
               child: WalkingLoader(size: 60, color: AppColors.primary),
@@ -257,11 +267,13 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
                   final showReminder = isDueInFiveDays(dueDate, status);
 
-                  return Container(
+                  return FadeInSlide(
+                    delay: index * 0.05,
+                    child: Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                        color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -276,9 +288,11 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                       children: [
                         Text(
                           bill["month"] ?? "",
-                          style: const TextStyle(
+                            style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                              color:
+                                  Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                         ),
 
@@ -288,9 +302,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                         if (bill["flatNo"] != null)
                           Text(
                             "Flat: ${bill["flatNo"]}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                              color: Theme.of(context).primaryColor,
                             ),
                           ),
 
@@ -298,7 +312,11 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
                         Text(
                           "Amount: ₹${bill["amount"]}",
-                          style: const TextStyle(fontSize: 15),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
                         ),
 
                         const SizedBox(height: 6),
@@ -308,7 +326,12 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                             "Due: ${DateTime.parse(dueDate).toLocal().toString().split(" ")[0]}",
                             style: TextStyle(
                               color:
-                                  showReminder ? Colors.red : Colors.grey[700],
+                                  showReminder
+                                    ? Colors.red
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
                             ),
                           ),
 
@@ -366,6 +389,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                           ),
                         ),
                       ],
+                    ),
                     ),
                   );
                 },

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-
+import '../core/storage/cache_service.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/services/socket_service.dart';
+import 'dart:async';
 
 class ResidentVisitorsScreen extends StatefulWidget {
   const ResidentVisitorsScreen({super.key});
@@ -23,6 +24,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   final int limit = 20;
 
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _socketSub;
 
   static const String cacheKey = "resident_visitors_cache";
 
@@ -32,6 +34,11 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
     loadCachedVisitors();
     loadVisitors();
     _scrollController.addListener(_scrollListener);
+
+    // 🔌 Socket Update
+    _socketSub = SocketService().visitorStream.listen((_) {
+      loadVisitors();
+    });
   }
 
   void _scrollListener() {
@@ -48,18 +55,12 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   =============================== */
 
   Future<void> loadCachedVisitors() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cached = prefs.getString(cacheKey);
-
-    if (cached != null) {
-      final decoded = jsonDecode(cached);
-
-      if (mounted) {
-        setState(() {
-          visitors = decoded;
-          loading = false;
-        });
-      }
+    final cached = await CacheService.getData(cacheKey);
+    if (cached != null && mounted) {
+      setState(() {
+        visitors = cached;
+        loading = false;
+      });
     }
   }
 
@@ -68,8 +69,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   =============================== */
 
   Future<void> saveVisitorsCache(List data) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(cacheKey, jsonEncode(data));
+    await CacheService.saveData(cacheKey, data);
   }
 
   /* ===============================
@@ -77,25 +77,42 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   =============================== */
 
   Future<void> loadVisitors() async {
-    setState(() {
-      loading = true;
+    if (visitors.isEmpty) {
+      setState(() {
+        loading = true;
+        currentPage = 1;
+        hasMore = true;
+      });
+    } else {
       currentPage = 1;
       hasMore = true;
-    });
+    }
 
     final response =
         await ApiService.get("/visitors?page=$currentPage&limit=$limit");
 
     if (response != null && response["data"] != null) {
-      setState(() {
-        visitors = response["data"];
-        hasMore = response["hasMore"] ?? false;
-        loading = false;
-      });
+      final newVisitors = response["data"];
+
+      final String cachedStr = jsonEncode(visitors);
+      final String freshStr = jsonEncode(newVisitors);
+
+      if (cachedStr == freshStr && !loading) {
+         hasMore = response["hasMore"] ?? false;
+         return; // Array perfectly matches, skip rebuild
+      }
+
+      if (mounted) {
+        setState(() {
+          visitors = newVisitors;
+          hasMore = response["hasMore"] ?? false;
+          loading = false;
+        });
+      }
 
       await saveVisitorsCache(visitors);
     } else {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -146,6 +163,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
 
   @override
   void dispose() {
+    _socketSub?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -161,7 +179,7 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
       case "REJECTED":
         return AppColors.error;
       default:
-        return Colors.black54;
+        return Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
     }
   }
 
@@ -179,11 +197,10 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Visitor Entries"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
         actions: [
           IconButton(
@@ -217,11 +234,11 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withOpacity(0.02),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -247,9 +264,10 @@ class _ResidentVisitorsScreenState extends State<ResidentVisitorsScreen> {
                             ),
                             title: Text(
                               v["personName"] ?? "Unknown",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
+                                color: Theme.of(context).textTheme.bodyLarge?.color,
                               ),
                             ),
                             subtitle: Text(

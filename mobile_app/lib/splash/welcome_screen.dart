@@ -92,7 +92,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -105,7 +105,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -136,13 +136,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     "Building Management",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).textTheme.headlineSmall?.color,
                         ),
                   ),
                   Text(
                     "System",
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           letterSpacing: 2,
                         ),
                   ),
@@ -164,16 +164,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       "Welcome back,",
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _userName!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ],

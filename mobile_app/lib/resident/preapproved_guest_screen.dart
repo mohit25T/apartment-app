@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -58,11 +59,10 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Pre-Approved Guest"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -81,7 +81,6 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -95,10 +94,8 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
           controller: nameController,
           decoration: InputDecoration(
             labelText: "Guest Name",
-            prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+            prefixIcon: const Icon(Icons.person_outline),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 16),
@@ -106,13 +103,12 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
           controller: mobileController,
           maxLength: 10,
           keyboardType: TextInputType.phone,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             labelText: "Guest Mobile",
-            prefixIcon: const Icon(Icons.phone_android_outlined, color: AppColors.primary),
+            prefixIcon: const Icon(Icons.phone_android_outlined),
             counterText: "",
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 40),
@@ -142,7 +138,7 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -162,7 +158,6 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -174,17 +169,17 @@ class _PreApprovedGuestScreenState extends State<PreApprovedGuestScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2)),
               ),
               child: Text(
                 otp!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 8,
-                  color: AppColors.primary,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,23 +37,29 @@ class _LoginScreenState extends State<LoginScreen> {
       {"mobile": mobileController.text},
     );
 
-    setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
 
     if (response["message"] == "OTP sent successfully") {
-      Navigator.pushNamed(
-        context,
-        "/otp",
-        arguments: mobileController.text,
-      );
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          "/otp",
+          arguments: mobileController.text,
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            response["message"] ?? "OTP failed",
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response["message"] ?? "OTP failed",
+            ),
+            backgroundColor: AppColors.error,
           ),
-          backgroundColor: AppColors.error,
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -62,121 +70,215 @@ class _LoginScreenState extends State<LoginScreen> {
       uri,
       mode: LaunchMode.externalApplication,
     )) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Unable to open support option")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Unable to open support option")),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              // Header
-              Icon(
-                Icons.apartment_rounded,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "Welcome Back",
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Enter your mobile number to continue",
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-
-              // Input Field
-              TextField(
-                controller: mobileController,
-                keyboardType: TextInputType.phone,
-                style: const TextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  labelText: "Mobile Number",
-                  hintText: "Enter 10 digit number",
-                  prefixIcon: const Icon(Icons.phone_android),
-                  prefixText: "+91 ",
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Modern Header
+            Container(
+              height: 320,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, Color(0xFF1E88E5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(50),
+                  bottomRight: Radius.circular(50),
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // Action Button
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: loading ? null : sendOtp,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+                    FadeInSlide(
+                      delay: 0.1,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.apartment_rounded,
+                          size: 80,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: loading
-                      ? const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: WalkingLoader(size: 40, color: Colors.white),
-                        )
-                      : const Text("Get OTP"),
+                    const SizedBox(height: 20),
+                    const FadeInSlide(
+                      delay: 0.2,
+                      child: Text(
+                        "Welcome Back",
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FadeInSlide(
+                      delay: 0.3,
+                      child: Text(
+                        "Enter your mobile number to continue",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-
-              // Support Section
-              const SizedBox(height: 60),
-              Row(
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      "Need Help?",
-                      style:
-                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  // Modern Input Field
+                  FadeInSlide(
+                    delay: 0.4,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+                      ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: TextField(
+                        controller: mobileController,
+                        keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        decoration: const InputDecoration(
+                          labelText: "Mobile Number",
+                          hintText: "Enter 10 digit number",
+                          prefixIcon: Icon(Icons.phone_android, color: AppColors.primary),
+                          prefixText: "+91 ",
+                          counterText: "",
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                    ),
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  const SizedBox(height: 32),
+
+                  // Action Button
+                  FadeInSlide(
+                    delay: 0.5,
+                    child: SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : sendOtp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 5,
+                          shadowColor: AppColors.primary.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: loading
+                            ? const SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: WalkingLoader(size: 40, color: Colors.white),
+                              )
+                            : const Text(
+                                "Get OTP",
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  // Support Section
+                  const SizedBox(height: 50),
+                  FadeInSlide(
+                    delay: 0.6,
+                    child: Row(
+                      children: [
+                        Expanded(child: Divider(color: Theme.of(context).dividerColor.withOpacity(0.2))),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            "Need Help?",
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Theme.of(context).dividerColor.withOpacity(0.2))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FadeInSlide(
+                    delay: 0.7,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildSupportOption(
+                          icon: Icons.call,
+                          label: "Call",
+                          onTap: () => openLink(supportPhone),
+                        ),
+                        _buildSupportOption(
+                          icon: Icons.chat,
+                          label: "WhatsApp",
+                          onTap: () => openLink(supportWhatsApp),
+                          color: Colors.green,
+                        ),
+                        _buildSupportOption(
+                          icon: Icons.email,
+                          label: "Email",
+                          onTap: () => openLink(supportEmail),
+                          color: Colors.redAccent,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildSupportOption(
-                    icon: Icons.call,
-                    label: "Call",
-                    onTap: () => openLink(supportPhone),
-                  ),
-                  _buildSupportOption(
-                    icon: Icons.chat, // Assuming chat represents WhatsApp
-                    label: "WhatsApp",
-                    onTap: () => openLink(supportWhatsApp),
-                    color: Colors.green,
-                  ),
-                  _buildSupportOption(
-                    icon: Icons.email,
-                    label: "Email",
-                    onTap: () => openLink(supportEmail),
-                    color: Colors.redAccent,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -190,31 +292,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: color ?? AppColors.primary, size: 24),
-            const SizedBox(height: 4),
+            Icon(icon, color: color ?? AppColors.primary, size: 28),
+            const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ],

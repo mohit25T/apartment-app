@@ -182,9 +182,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                                 onPressed:
                                     submitting ? null : _requestEmailChange,
                                 child: submitting
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
+                                    ? const CircularProgressIndicator()
                                     : const Text("Send OTP"),
                               ),
                             ),
@@ -217,9 +215,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                                 ),
                                 onPressed: submitting ? null : _verifyOtp,
                                 child: submitting
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
+                                    ? const CircularProgressIndicator()
                                     : const Text("Verify & Update"),
                               ),
                             ),

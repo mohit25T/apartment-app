@@ -8,17 +8,17 @@ class AppFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF5F5F5),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
         border: Border(
-          top: BorderSide(color: Colors.black12),
+          top: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ),
-      child: const Text(
+      child: Text(
         "© Apex IT Solutions. All rights reserved.",
         style: TextStyle(
           fontSize: 12,
-          color: Colors.black54,
+          color: Theme.of(context).textTheme.bodySmall?.color,
           fontWeight: FontWeight.w500,
         ),
       ),

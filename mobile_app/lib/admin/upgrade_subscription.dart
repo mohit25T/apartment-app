@@ -47,7 +47,7 @@ class _UpgradeSubscriptionScreenState
   Future<void> initData() async {
     setState(() => loading = true);
 
-    final sub = await ApiService.get("/subscription/me");
+    final sub = await ApiService.get("/subscription/current");
 
     if (sub != null) {
       currentSub = sub;
@@ -148,90 +148,322 @@ class _UpgradeSubscriptionScreenState
   }
 
   // ===============================
-  // UI
+  // 🎨 UI COMPONENTS (UNIFIED)
   // ===============================
+  Widget _buildInfoCard({
+    required String title,
+    required List<Widget> children,
+    IconData? icon,
+    Color? accentColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color:
+                          (accentColor ?? AppColors.primary).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon,
+                        size: 20, color: accentColor ?? AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleMedium?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value,
+      {bool isBold = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              fontSize: 15,
+              color: valueColor ?? Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleItem(String plan, String label) {
+    final bool isSelected = selectedPlan == plan;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedPlan = plan;
+          });
+          loadPreview();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? AppColors.primary
+                  : Theme.of(context).textTheme.bodyMedium?.color,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanToggle() {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).dividerColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          _buildToggleItem("monthly", "Monthly"),
+          _buildToggleItem("yearly", "Yearly"),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Upgrade Subscription")),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: loading
-          ? const Center(child: WalkingLoader())
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  // 🔥 CURRENT PLAN
-                  Text(
-                    "Current Plan: ${currentSub?["plan"]}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Allowed Flats: ${preview?["allowedFlats"] ?? 0}",
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 🔄 PLAN SELECT
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() => selectedPlan = "monthly");
-                            loadPreview();
-                          },
-                          child: const Text("Monthly"),
+          ? const Center(child: WalkingLoader(size: 80))
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 180,
+                  pinned: true,
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: true,
+                    title: const Text(
+                      "Upgrade Plan",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                    background: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [AppColors.primary, Color(0xFF1565C0)],
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() => selectedPlan = "yearly");
-                            loadPreview();
-                          },
-                          child: const Text("Yearly"),
-                        ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: CircleAvatar(
+                              radius: 100,
+                              backgroundColor: Colors.white.withOpacity(0.05),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // 🔥 AUTO CALCULATED INFO
-                  Text("Total Flats: ${preview?["totalFlatsInDB"] ?? 0}"),
-                  Text("Subscribed Flats: ${preview?["allowedFlats"] ?? 0}"),
-
-                  const SizedBox(height: 10),
-
-                  Text(
-                    "New Flats: ${preview?["extraFlats"] ?? 0}",
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 🔥 CURRENT PLAN CARD
+                        _buildInfoCard(
+                          title: "Current Status",
+                          icon: Icons.auto_awesome_outlined,
+                          children: [
+                            _buildDetailRow(
+                              "Active Plan",
+                              currentSub?["plan"]?.toString().toUpperCase() ??
+                                  "N/A",
+                              valueColor: AppColors.primary,
+                            ),
+                            _buildDetailRow(
+                              "Subscribed Units",
+                              "${preview?["allowedFlats"] ?? 0} Units",
+                            ),
+                          ],
+                        ),
 
-                  const SizedBox(height: 20),
+                        // 📈 UPGRADE DETAILS
+                        _buildInfoCard(
+                          title: "Subscription Changes",
+                          icon: Icons.trending_up_rounded,
+                          accentColor: Colors.orange,
+                          children: [
+                            _buildDetailRow(
+                              "Total Units in Society",
+                              "${preview?["totalFlatsInDB"] ?? 0} Units",
+                            ),
+                            if ((preview?["extraFlats"] ?? 0) > 0)
+                              _buildDetailRow(
+                                "New Units Found",
+                                "+${preview?["extraFlats"] ?? 0} Units",
+                                valueColor: Colors.red,
+                                isBold: true,
+                              ),
+                          ],
+                        ),
 
-                  // 💰 BILLING
-                  Text("Flats to Pay: ${preview?["totalFlats"] ?? 0}"),
-                  Text("Price/Flat: ₹${preview?["pricePerFlat"] ?? 0}"),
-                  Text("Total: ₹${preview?["totalAmount"] ?? 0}"),
+                        // 💰 BILLING SUMMARY
+                        _buildInfoCard(
+                          title: "Billing Summary",
+                          icon: Icons.receipt_long_outlined,
+                          accentColor: Colors.green,
+                          children: [
+                            _buildDetailRow(
+                              "Selected Cycle",
+                              selectedPlan.toUpperCase(),
+                            ),
+                            _buildDetailRow(
+                              "Unit Price",
+                              "₹${preview?["pricePerFlat"] ?? 0}",
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Divider(),
+                            ),
+                            _buildDetailRow(
+                              "New Total",
+                              "₹${preview?["totalAmount"] ?? 0}",
+                              isBold: true,
+                              valueColor: Theme.of(context).primaryColor,
+                            ),
+                          ],
+                        ),
 
-                  const Spacer(),
-
-                  // 💳 BUTTON
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: createOrder,
-                      child: const Text("Upgrade Now"),
+                        const SizedBox(height: 100),
+                      ],
                     ),
+                  ),
+                ),
+              ],
+            ),
+      bottomSheet: loading
+          ? null
+          : Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
                   ),
                 ],
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: createOrder,
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.bolt, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Pay ₹${preview?["totalAmount"] ?? 0} & Upgrade",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
 import '../core/widgets/walking_loader.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class ComplaintAdminScreen extends StatefulWidget {
   const ComplaintAdminScreen({super.key});
@@ -141,15 +142,23 @@ class _ComplaintAdminScreenState extends State<ComplaintAdminScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Manage Complaints"),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: loading
           ? const Center(
               child: WalkingLoader(
                 size: 60,
-                color: AppColors.primary,
               ),
             )
           : RefreshIndicator(
@@ -164,71 +173,74 @@ class _ComplaintAdminScreenState extends State<ComplaintAdminScreen> {
                       itemBuilder: (context, index) {
                         final complaint = complaints[index];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        complaint["title"],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                        return FadeInSlide(
+                          delay: index * 0.05,
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          complaint["title"],
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            getStatusColor(complaint["status"])
-                                                .withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        complaint["status"],
-                                        style: TextStyle(
-                                          color: getStatusColor(
-                                              complaint["status"]),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              getStatusColor(complaint["status"])
+                                                  .withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          complaint["status"],
+                                          style: TextStyle(
+                                            color: getStatusColor(
+                                                complaint["status"]),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text("Flat: ${complaint["flatNo"]}"),
-                                const SizedBox(height: 6),
-                                Text(
-                                  complaint["description"] ?? "",
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                const SizedBox(height: 8),
-                                buildImages(complaint["images"] ?? []),
-                                const SizedBox(height: 10),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton(
-                                    onPressed: () =>
-                                        showUpdateDialog(complaint),
-                                    child: const Text("Update"),
+                                    ],
                                   ),
-                                )
-                              ],
+                                  const SizedBox(height: 6),
+                                  Text("Flat: ${complaint["flatNo"]}"),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    complaint["description"] ?? "",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  buildImages(complaint["images"] ?? []),
+                                  const SizedBox(height: 10),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ElevatedButton(
+                                      onPressed: () =>
+                                          showUpdateDialog(complaint),
+                                      child: const Text("Update"),
+                                    ),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                         );

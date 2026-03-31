@@ -49,11 +49,10 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Guest OTP Entry"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: Padding(
@@ -61,14 +60,13 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-            const Icon(Icons.lock_open_rounded, size: 80, color: AppColors.primary),
+            const Icon(Icons.lock_open_rounded, size: 80),
             const SizedBox(height: 24),
             const Text(
               "Enter Guest OTP",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -94,7 +92,7 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
                 hintStyle: const TextStyle(fontSize: 18, letterSpacing: 1, fontWeight: FontWeight.normal),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).cardColor,
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
@@ -105,7 +103,6 @@ class _GuestOtpScreenState extends State<GuestOtpScreen> {
               child: ElevatedButton(
                 onPressed: loading ? null : verifyOtp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: loading

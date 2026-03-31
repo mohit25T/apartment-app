@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 
@@ -87,9 +88,8 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
         title: const Text("Invite Tenant"),
       ),
       body: loadingFlat
@@ -99,15 +99,15 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      const Icon(Icons.person_add_alt_1_rounded,
-                          size: 60, color: AppColors.primary),
+                      Icon(Icons.person_add_alt_1_rounded,
+                          size: 60, color: Theme.of(context).primaryColor),
                       const SizedBox(height: 20),
 
                       // 🔒 Flat Number (Auto-fetched)
@@ -138,9 +138,12 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
                       TextFormField(
                         controller: mobileController,
                         keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         decoration: const InputDecoration(
                           labelText: "Mobile Number",
                           border: OutlineInputBorder(),
+                          counterText: "",
                         ),
                         validator: (value) => value == null || value.length < 10
                             ? "Enter valid mobile number"
@@ -168,12 +171,6 @@ class _InviteTenantScreenState extends State<InviteTenantScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                           onPressed: loading ? null : inviteTenant,
                           child: loading
                               ? const CircularProgressIndicator(

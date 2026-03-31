@@ -5,6 +5,8 @@ import 'dart:convert';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/services/socket_service.dart';
+import 'dart:async';
 
 class ResidentPendingVisitorsScreen extends StatefulWidget {
   const ResidentPendingVisitorsScreen({super.key});
@@ -19,6 +21,7 @@ class _ResidentPendingVisitorsScreenState
   bool loading = true;
   bool actionLoading = false;
   List visitors = [];
+  StreamSubscription? _socketSub;
 
   static const String cacheKey = "resident_pending_visitors_cache";
 
@@ -27,6 +30,17 @@ class _ResidentPendingVisitorsScreenState
     super.initState();
     loadCachedVisitors(); // load cache first
     fetchVisitors(); // refresh from API
+
+    // 🔌 Listen for real-time updates
+    _socketSub = SocketService().visitorStream.listen((_) {
+      fetchVisitors();
+    });
+  }
+
+  @override
+  void dispose() {
+    _socketSub?.cancel();
+    super.dispose();
   }
 
   /* ============================
@@ -140,11 +154,10 @@ class _ResidentPendingVisitorsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Pending Visitors"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: loading
@@ -178,7 +191,7 @@ class _ResidentPendingVisitorsScreenState
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -232,10 +245,13 @@ class _ResidentPendingVisitorsScreenState
                                     children: [
                                       Text(
                                         v["personName"] ?? "Visitor",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.textPrimary,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -293,7 +309,9 @@ class _ResidentPendingVisitorsScreenState
                               Container(
                                   width: 1,
                                   height: 50,
-                                  color: Colors.grey.shade200),
+                                  color: Theme.of(context)
+                                      .dividerColor
+                                      .withOpacity(0.1)),
                               Expanded(
                                 child: InkWell(
                                   onTap: () => approveVisitor(v["_id"]),

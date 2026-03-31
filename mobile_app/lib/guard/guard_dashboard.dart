@@ -4,6 +4,7 @@ import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
 import '../sos/guard_sos_screen.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class GuardDashboard extends StatefulWidget {
   const GuardDashboard({super.key});
@@ -106,16 +107,19 @@ class _GuardDashboardState extends State<GuardDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppColors.primary,
         elevation: 0,
         title: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.security, color: AppColors.primary),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.security, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Column(
@@ -123,7 +127,11 @@ class _GuardDashboardState extends State<GuardDashboard> {
               children: [
                 const Text(
                   "Security Operations",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 Text(
                   "Guard Dashboard",
@@ -145,7 +153,7 @@ class _GuardDashboardState extends State<GuardDashboard> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -155,16 +163,16 @@ class _GuardDashboardState extends State<GuardDashboard> {
               },
               child: loadingProfile
                   ? const CircleAvatar(
-                      backgroundColor: Colors.white,
+                      backgroundColor: Colors.white24,
                       child: SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       ),
                     )
                   : CircleAvatar(
                       radius: 20,
-                      backgroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).cardColor,
                       backgroundImage: profileImage != null
                           ? NetworkImage(
                               profileImage! +
@@ -172,9 +180,9 @@ class _GuardDashboardState extends State<GuardDashboard> {
                             )
                           : null,
                       child: profileImage == null
-                          ? const Icon(
+                          ? Icon(
                               Icons.person,
-                              color: AppColors.primary,
+                              color: Theme.of(context).primaryColor,
                             )
                           : null,
                     ),
@@ -191,68 +199,70 @@ class _GuardDashboardState extends State<GuardDashboard> {
               padding: const EdgeInsets.all(20),
               children: [
 
-                _buildActionCard(
-                  context,
-                  title: "SOS Alerts",
-                  subtitle: "View emergency alerts from residents",
-                  icon: Icons.warning_rounded,
-                  color: Colors.red,
-                  route: "SOS_SCREEN",
-                ),
-
-                _buildActionCard(
-                  context,
-                  title: "Visitor Entry",
-                  subtitle: "Log new visitor arrival",
-                  icon: Icons.person_add_rounded,
-                  color: Colors.blueAccent,
-                  route: "/visitor-entry",
-                ),
-
-                _buildActionCard(
-                  context,
-                  title: "Delivery Entry",
-                  subtitle: "Log package delivery",
-                  icon: Icons.local_shipping_rounded,
-                  color: Colors.orangeAccent,
-                  route: "/delivery-entry",
-                ),
-
-                _buildActionCard(
+                FadeInSlide(delay: 0.1, child: _buildActionCard(
                   context,
                   title: "Guest with Pass",
                   subtitle: "Verify OTP or Code",
                   icon: Icons.verified_user_rounded,
                   color: Colors.green,
                   route: "/guest-otp",
-                ),
+                )),
 
-                _buildActionCard(
+                FadeInSlide(delay: 0.15, child: _buildActionCard(
+                  context,
+                  title: "Visitor Entry",
+                  subtitle: "Log new visitor arrival",
+                  icon: Icons.person_add_rounded,
+                  color: Colors.blueAccent,
+                  route: "/visitor-entry",
+                )),
+
+                FadeInSlide(delay: 0.2, child: _buildActionCard(
+                  context,
+                  title: "Delivery Entry",
+                  subtitle: "Log package delivery",
+                  icon: Icons.local_shipping_rounded,
+                  color: Colors.orangeAccent,
+                  route: "/delivery-entry",
+                )),
+
+                FadeInSlide(delay: 0.25, child: _buildActionCard(
                   context,
                   title: "Visitor Log",
                   subtitle: "View today's visitors",
                   icon: Icons.history_rounded,
                   color: Colors.purpleAccent,
                   route: "/visitors",
-                ),
-                
-                _buildActionCard(
-                  context,
-                  title: "Contacts",
-                  subtitle: "Call emergency & society contacts",
-                  icon: Icons.contact_phone_rounded,
-                  color: Colors.green,
-                  route: "/contacts",
-                ),
+                )),
 
-                _buildActionCard(
+                FadeInSlide(delay: 0.3, child: _buildActionCard(
                   context,
                   title: "Vehicle Search",
                   subtitle: "Find vehicle owner by number plate",
                   icon: Icons.directions_car_rounded,
                   color: Colors.indigo,
                   route: "/vehicle-search",
-                ),
+                )),
+                
+                FadeInSlide(delay: 0.35, child: _buildActionCard(
+                  context,
+                  title: "Contacts",
+                  subtitle: "Call emergency & society contacts",
+                  icon: Icons.contact_phone_rounded,
+                  color: Colors.green,
+                  route: "/contacts",
+                )),
+
+                FadeInSlide(delay: 0.4, child: _buildActionCard(
+                  context,
+                  title: "SOS Alerts",
+                  subtitle: "View emergency alerts from residents",
+                  icon: Icons.warning_rounded,
+                  color: Colors.red,
+                  route: "SOS_SCREEN",
+                )),
+                
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -263,19 +273,27 @@ class _GuardDashboardState extends State<GuardDashboard> {
 
   Widget _buildShiftStatus() {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isOnDuty ? Colors.green : Colors.red,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (isOnDuty ? Colors.green : Colors.red).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Icon(
             isOnDuty ? Icons.check_circle : Icons.block,
             color: Colors.white,
+            size: 28,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               isOnDuty
@@ -283,8 +301,9 @@ class _GuardDashboardState extends State<GuardDashboard> {
                   : "OFF DUTY • Shift $shiftStart - $shiftEnd",
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -295,9 +314,13 @@ class _GuardDashboardState extends State<GuardDashboard> {
 
   Widget _buildHeader() {
     return Container(
-      height: 20,
+      height: 30,
       decoration: const BoxDecoration(
-        color: AppColors.primary,
+        gradient: LinearGradient(
+          colors: [AppColors.primary, Color(0xFF1E88E5)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
@@ -336,18 +359,18 @@ class _GuardDashboardState extends State<GuardDashboard> {
           Navigator.pushNamed(context, route);
         }
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: color.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
           border: Border(left: BorderSide(color: color, width: 6)),
@@ -369,25 +392,25 @@ class _GuardDashboardState extends State<GuardDashboard> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.grey, size: 20),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade400, size: 20),
           ],
         ),
       ),

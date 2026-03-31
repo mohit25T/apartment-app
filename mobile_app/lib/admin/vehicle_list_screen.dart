@@ -37,11 +37,10 @@ class _AdminVehicleListScreenState extends State<AdminVehicleListScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("All Vehicles"),
-        backgroundColor: AppColors.primary,
       ),
 
       body: loading

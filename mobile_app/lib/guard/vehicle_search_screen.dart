@@ -55,11 +55,10 @@ class _GuardVehicleSearchScreenState
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Vehicle Search"),
-        backgroundColor: AppColors.primary,
       ),
 
       body: Padding(
@@ -84,9 +83,6 @@ class _GuardVehicleSearchScreenState
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: searchVehicle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
                 child: const Text("Search"),
               ),
             ),
@@ -98,8 +94,8 @@ class _GuardVehicleSearchScreenState
               Card(
                 elevation: 3,
                 child: ListTile(
-                  leading: const Icon(Icons.directions_car,
-                      color: AppColors.primary),
+                  leading: Icon(Icons.directions_car,
+                      color: Theme.of(context).primaryColor),
 
                   title: Text(
                     vehicle!["vehicleNumber"] ?? "",

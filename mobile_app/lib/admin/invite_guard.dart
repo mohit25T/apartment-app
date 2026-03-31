@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -108,11 +109,10 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
 
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Invite Guard"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -125,7 +125,6 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -164,8 +163,6 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                filled: true,
-                fillColor: Colors.white,
               ),
               items: const [
                 DropdownMenuItem(value: "DAY", child: Text("Day Shift")),
@@ -235,15 +232,13 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
       controller: controller,
       keyboardType: keyboardType,
       maxLength: maxLength,
+      inputFormatters: keyboardType == TextInputType.phone 
+          ? [FilteringTextInputFormatter.digitsOnly] 
+          : [],
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.primary),
+        prefixIcon: Icon(icon),
         counterText: "",
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        filled: true,
-        fillColor: Colors.white,
       ),
     );
   }
@@ -257,8 +252,6 @@ class _InviteGuardScreenState extends State<InviteGuardScreen> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
         child: Text(
           time == null ? "Select Time" : formatTime(time),

@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_theme.dart';
 import '../core/storage/user_storage.dart';
 import '../core/api/api_service.dart';
+import '../core/services/socket_service.dart';
+import '../core/services/update_service.dart';
 
 class AuthCheckScreen extends StatefulWidget {
   const AuthCheckScreen({super.key});
@@ -25,6 +27,9 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   }
 
   Future<void> _startAnimation() async {
+    // 🚀 Check for updates (Background)
+    UpdateService().checkForUpdates(silent: true);
+
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _logoOpacity = 1.0);
 
@@ -64,6 +69,9 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
       }
 
       if (name != null && name.isNotEmpty) {
+        // 🔌 Initialize Socket
+        SocketService().init();
+
         if (mounted) {
           setState(() {
             _userName = name;
@@ -103,7 +111,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -115,7 +123,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -143,7 +151,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
                     "Building Management",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                   ),
                   Text(
@@ -168,7 +176,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
                       "Welcome back,",
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(height: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api/api_service.dart';
 import '../core/storage/token_storage.dart';
 
@@ -99,6 +100,7 @@ class _ChangeMobileScreenState extends State<ChangeMobileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Change Mobile"),
         centerTitle: true,
@@ -131,9 +133,13 @@ class _ChangeMobileScreenState extends State<ChangeMobileScreen> {
                           TextField(
                             keyboardType: TextInputType.phone,
                             maxLength: 10,
-                            decoration: const InputDecoration(
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: InputDecoration(
                               labelText: "New Mobile Number",
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                              counterText: "",
                             ),
                             onChanged: (v) => newMobile = v.trim(),
                           ),

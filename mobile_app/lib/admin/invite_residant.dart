@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -125,9 +126,6 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, "/subscription");
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
               child: const Text("Upgrade Now"),
             ),
           ],
@@ -149,11 +147,10 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Invite Resident"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -166,7 +163,6 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -250,15 +246,16 @@ class _InviteResidentScreenState extends State<InviteResidentScreen> {
       controller: controller,
       keyboardType: keyboardType,
       maxLength: maxLength,
+      inputFormatters: keyboardType == TextInputType.phone 
+          ? [FilteringTextInputFormatter.digitsOnly] 
+          : [],
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.primary),
+        prefixIcon: Icon(icon),
         counterText: "",
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        filled: true,
-        fillColor: Colors.white,
       ),
     );
   }

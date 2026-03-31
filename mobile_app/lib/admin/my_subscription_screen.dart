@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../core/api/api_service.dart';
+import '../core/storage/cache_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
 
@@ -21,29 +23,50 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   }
 
   Future<void> loadSubscription() async {
+    // 1. Optimistic Cache Load
     try {
-      final res = await ApiService.get("/subscription/me");
-
-      // 🔥 DEBUG (remove later)
-
-      if (mounted) {
+      final cachedRes = await CacheService.getData("subscription_me");
+      if (cachedRes != null && mounted) {
         setState(() {
-          subscriptionData = res;
+          subscriptionData = cachedRes;
           loading = false;
         });
       }
+    } catch (_) {}
+
+    // 2. Background fresh fetch
+    try {
+      final res = await ApiService.get("/subscription/current");
+
+      if (res != null && res["error"] != true) {
+        final String cachedStr = jsonEncode(subscriptionData ?? {});
+        final String freshStr = jsonEncode(res);
+
+        if (cachedStr == freshStr && !loading) return; // Skip rebuild
+
+        await CacheService.saveData("subscription_me", res);
+
+        if (mounted) {
+          setState(() {
+            subscriptionData = res;
+            loading = false;
+          });
+        }
+      } else {
+        // 🚨 FETCH FAILED -> KEEP CACHE
+        if (mounted) setState(() => loading = false);
+      }
     } catch (e) {
-      if (mounted) setState(() => loading = false);
+      if (mounted && loading == true) setState(() => loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("My Subscription"),
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: loading
@@ -61,18 +84,17 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   }
 
   Widget _buildSubscriptionDetails() {
-    // 🔥 HANDLE BOTH ROOT + NESTED STRUCTURE
     final raw = subscriptionData ?? {};
-    final nested = raw["subscription"] ?? {};
-
-    final status = raw["status"] ?? nested["status"] ?? "ACTIVE";
-    final plan = raw["plan"] ?? nested["plan"] ?? "Monthly";
-    final totalAmount = raw["amount"] ?? nested["amount"] ?? 0;
+    
+    // 🔥 DATA IS NOW TOP-LEVEL FROM /subscription/current
+    final status = raw["status"] ?? "ACTIVE";
+    final plan = raw["plan"] ?? "Monthly";
+    final totalAmount = raw["amount"] ?? 0;
 
     final startDateValue =
-        raw["startDate"] ?? nested["startDate"];
+        raw["startDate"];
     final endDateValue =
-        raw["endDate"] ?? nested["endDate"];
+        raw["endDate"];
 
     // 📅 Format Dates
     String startDateStr = "N/A";
@@ -176,7 +198,6 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
                   ),
                 ),
 
@@ -185,7 +206,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                 // 📦 DETAILS CARD
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   padding: const EdgeInsets.all(24),
@@ -255,10 +276,10 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.05),
+            color: Theme.of(context).primaryColor.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: AppColors.primary, size: 22),
+          child: Icon(icon, color: Theme.of(context).primaryColor, size: 22),
         ),
         const SizedBox(width: 16),
         Text(
@@ -272,7 +293,6 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
         Text(
           value,
           style: const TextStyle(
-            color: AppColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),

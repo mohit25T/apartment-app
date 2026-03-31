@@ -135,7 +135,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
       margin: const EdgeInsets.only(bottom: 25),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -155,10 +155,17 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text("Month: $selectedMonth $selectedYear"),
-          Text("Amount: ₹${amountController.text}"),
+          Text(
+            "Month: $selectedMonth $selectedYear",
+            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+          ),
+          Text(
+            "Amount: ₹${amountController.text}",
+            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+          ),
           Text(
             "Due Date: ${DateFormat('dd MMM yyyy').format(previewDate)}",
+            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
           ),
         ],
       ),
@@ -176,7 +183,7 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
     final validMonths = getValidMonths();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Generate Maintenance"),
       ),
@@ -190,14 +197,14 @@ class _GenerateMaintenanceScreenState extends State<GenerateMaintenanceScreen> {
               Icon(
                 Icons.receipt_long_rounded,
                 size: 70,
-                color: AppColors.primary,
+                color: Theme.of(context).primaryColor,
               ),
               const SizedBox(height: 20),
               Text(
                 "Generate Monthly Bills",
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Theme.of(context).primaryColor,
                     ),
                 textAlign: TextAlign.center,
               ),

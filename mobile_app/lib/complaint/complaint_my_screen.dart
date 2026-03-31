@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
 import '../core/widgets/walking_loader.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class ComplaintMyScreen extends StatefulWidget {
   const ComplaintMyScreen({super.key});
@@ -73,13 +74,23 @@ class _ComplaintMyScreenState extends State<ComplaintMyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text("My Complaints")),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("My Complaints"),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
       body: loading
           ? const Center(
               child: WalkingLoader(
                 size: 60,
-                color: AppColors.primary,
               ),
             )
           : RefreshIndicator(
@@ -97,78 +108,81 @@ class _ComplaintMyScreenState extends State<ComplaintMyScreen> {
                       itemBuilder: (context, index) {
                         final complaint = complaints[index];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        complaint["title"],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                        return FadeInSlide(
+                          delay: index * 0.05,
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          complaint["title"],
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            getStatusColor(complaint["status"])
-                                                .withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        complaint["status"],
-                                        style: TextStyle(
-                                          color: getStatusColor(
-                                              complaint["status"]),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              getStatusColor(complaint["status"])
+                                                  .withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          complaint["status"],
+                                          style: TextStyle(
+                                            color: getStatusColor(
+                                                complaint["status"]),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  complaint["description"] ?? "",
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 10),
-                                buildImages(complaint["images"] ?? []),
-                                if (complaint["adminResponse"] != null &&
-                                    complaint["adminResponse"]
-                                        .toString()
-                                        .isNotEmpty)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 12),
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    complaint["description"] ?? "",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
                                     ),
-                                    child: Text(
-                                      "Admin Response:\n${complaint["adminResponse"]}",
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  )
-                              ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  buildImages(complaint["images"] ?? []),
+                                  if (complaint["adminResponse"] != null &&
+                                      complaint["adminResponse"]
+                                          .toString()
+                                          .isNotEmpty)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 12),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        "Admin Response:\n${complaint["adminResponse"]}",
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    )
+                                ],
+                              ),
                             ),
                           ),
                         );

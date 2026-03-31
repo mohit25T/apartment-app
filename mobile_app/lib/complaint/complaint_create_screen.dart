@@ -102,7 +102,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Raise Complaint"),
       ),
@@ -225,7 +225,7 @@ class _ComplaintCreateScreenState extends State<ComplaintCreateScreen> {
               child: ElevatedButton(
                 onPressed: loading ? null : submitComplaint,
                 child: loading
-                    ? const WalkingLoader(size: 40, color: Colors.white)
+                    ? const WalkingLoader(size: 40)
                     : const Text("Submit Complaint"),
               ),
             ),

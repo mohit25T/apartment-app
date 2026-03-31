@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/resident/resident_dashboard.dart';
+import 'dart:convert';
 
 import '../core/storage/role_storage.dart';
+import '../core/storage/cache_service.dart';
 import '../core/navigation/animation_navigation.dart';
 import '../profile/profile_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/api/api_service.dart';
+import '../core/widgets/fade_in_slide.dart';
+import '../core/widgets/walking_loader.dart';
 import 'my_subscription_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -64,9 +68,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  // ===============================
-  // FETCH PROFILE
-  // ===============================
   Future<void> fetchProfile() async {
     try {
       final response = await ApiService.get("/users/profile");
@@ -103,41 +104,89 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
-  // ===============================
-  // 🔥 CHECK SUBSCRIPTION (FIXED)
-  // ===============================
   Future<void> checkSubscription() async {
+    dynamic cachedRes;
+    dynamic cachedPreview;
+
+    // 1. Optimistic Cache Load
     try {
-      final res = await ApiService.get("/subscription/me");
-      final preview = await ApiService.get("/subscription/preview");
-
-      bool isActive = false;
-
-      if (res != null) {
-        final status = res["status"]?.toString().toLowerCase();
-        final endDateStr = res["endDate"];
-
+      cachedRes = await CacheService.getData("subscription_me");
+      cachedPreview = await CacheService.getData("subscription_preview");
+      if (cachedRes != null && mounted) {
+        final status = cachedRes["status"]?.toString().toLowerCase();
+        final endDateStr = cachedRes["endDate"];
+        bool isActive = false;
         if (status == "active" && endDateStr != null) {
           final endDate = DateTime.parse(endDateStr);
           isActive = endDate.isAfter(DateTime.now());
         }
-      }
-
-      if (mounted) {
         setState(() {
           subscriptionActive = isActive;
           checkingSubscription = false;
-          usedFlats = preview?["totalFlatsInDB"] ?? 0;
-          allowedFlats = preview?["allowedFlats"] ?? 0;
-          extraFlats = preview?["extraFlats"] ?? 0;
+          usedFlats = cachedPreview?["totalFlatsInDB"] ?? 0;
+          allowedFlats = cachedPreview?["allowedFlats"] ?? 0;
+          extraFlats = cachedPreview?["extraFlats"] ?? 0;
         });
+      }
+    } catch (_) {}
+
+    // 2. Fetch fresh from API in background
+    try {
+      final responses = await Future.wait([
+        ApiService.get("/subscription/current"),
+        ApiService.get("/subscription/preview"),
+      ]);
+      final res = responses[0];
+      final preview = responses[1];
+
+      final String cachedResStr = jsonEncode(cachedRes ?? {});
+      final String cachedPreviewStr = jsonEncode(cachedPreview ?? {});
+      final String freshResStr = jsonEncode(res ?? {});
+      final String freshPreviewStr = jsonEncode(preview ?? {});
+
+      if (cachedResStr == freshResStr &&
+          cachedPreviewStr == freshPreviewStr &&
+          !checkingSubscription) {
+        return; // No change, skip rebuild
+      }
+
+      // 🔥 ONLY UPDATE IF RESPONSE IS VALID AND NOT AN ERROR
+      if (res != null && res["error"] != true) {
+        await CacheService.saveData("subscription_me", res);
+        
+        if (preview != null && preview["error"] != true) {
+           await CacheService.saveData("subscription_preview", preview);
+        }
+
+        final status = res["status"]?.toString().toLowerCase();
+        final endDateStr = res["endDate"];
+
+        bool isActive = false;
+        if (status == "active" && endDateStr != null) {
+          final endDate = DateTime.parse(endDateStr);
+          isActive = endDate.isAfter(DateTime.now());
+        }
+
+        if (mounted) {
+          setState(() {
+            subscriptionActive = isActive;
+            checkingSubscription = false;
+            if (preview != null && preview["error"] != true) {
+              usedFlats = preview["totalFlatsInDB"] ?? 0;
+              allowedFlats = preview["allowedFlats"] ?? 0;
+              extraFlats = preview["extraFlats"] ?? 0;
+            }
+          });
+        }
+      } else {
+        // 🚨 API FAILED OR RETURNED ERROR -> KEEP CACHED STATE
+        if (mounted) {
+          setState(() => checkingSubscription = false);
+        }
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          subscriptionActive = false;
-          checkingSubscription = false;
-        });
+        setState(() => checkingSubscription = false);
       }
     }
   }
@@ -149,17 +198,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: AppColors.primary,
         elevation: 0,
         title: Row(
           children: [
-            const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.admin_panel_settings, color: AppColors.primary),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  const Icon(Icons.admin_panel_settings, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Column(
@@ -167,7 +219,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 const Text(
                   "Admin Dashboard",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 Text(
                   wing != null
@@ -184,12 +240,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
 
         actions: [
-          if (!checkingSubscription)
+          if (checkingSubscription)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white70),
+                ),
+              ),
+            )
+          else
             IconButton(
               tooltip: "Subscription",
               icon: Icon(
                 Icons.workspace_premium_rounded,
-                color: subscriptionActive ? Colors.amberAccent : Colors.white,
+                color: subscriptionActive ? Colors.amberAccent : Colors.white70,
               ),
               onPressed: () {
                 if (subscriptionActive) {
@@ -206,7 +274,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
 
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: 16),
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -216,22 +284,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
               },
               child: loadingProfile
                   ? const CircleAvatar(
-                      backgroundColor: Colors.white,
+                      backgroundColor: Colors.white24,
                       child: SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       ),
                     )
                   : CircleAvatar(
                       radius: 20,
-                      backgroundColor: Colors.white,
+                      backgroundColor: Theme.of(context).cardColor,
                       backgroundImage: profileImage != null
                           ? NetworkImage(profileImage!)
                           : null,
                       child: profileImage == null
-                          ? const Icon(Icons.person,
-                              color: AppColors.primary)
+                          ? Icon(Icons.person,
+                              color: Theme.of(context).primaryColor)
                           : null,
                     ),
             ),
@@ -247,20 +316,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                if (checkingSubscription)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: WalkingLoader(size: 40)),
+                  )
+                else
+                  FadeInSlide(delay: 0.05, child: _buildUpgradeCard()),
 
-                // ✅ ONLY ONE BANNER
-                if (!checkingSubscription) _buildUpgradeCard(),
+                if (canSwitch)
+                  FadeInSlide(delay: 0.08, child: _buildSwitchModeCard()),
 
-                if (canSwitch) _buildSwitchModeCard(),
+                const SizedBox(height: 12),
 
-                const SizedBox(height: 20),
-
-                const Text(
+                Text(
                   "Quick Actions",
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                        letterSpacing: 0.5,
                   ),
                 ),
 
@@ -272,49 +346,89 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 1.15,
                   children: [
-                    _buildActionCard("SOS\nAlerts", Icons.warning_rounded,
-                        Colors.red, "/admin-sos"),
-                    _buildActionCard(
-                        "Generate\nMaintenance",
-                        Icons.receipt_long_rounded,
-                        Colors.deepPurple,
-                        "/generate-maintenance"),
-                    _buildActionCard("All\nMaintenance", Icons.list_alt_rounded,
-                        Colors.teal, "/admin-maintenance-list"),
-                    _buildActionCard(
-                        "Invite\nResident",
-                        Icons.group_add_rounded,
-                        Colors.blueAccent,
-                        "/invite-resident"),
-                    _buildActionCard(
-                        "Pending\nTenants",
-                        Icons.person_add_alt_1_rounded,
-                        Colors.redAccent,
-                        "/pending-tenants"),
-                    _buildActionCard("Manage\nUsers", Icons.groups_rounded,
-                        Colors.orangeAccent, "/society-users"),
-                    _buildActionCard("Invite\nGuard", Icons.security_rounded,
-                        Colors.green, "/invite-guard"),
-                    _buildActionCard(
-                        "Manage\nComplaints",
-                        Icons.admin_panel_settings_rounded,
-                        Colors.red,
-                        "/admin-complaints"),
-                    _buildActionCard("Create\nNotice", Icons.post_add_rounded,
-                        Colors.blue, "/create-notice"),
-                    _buildActionCard("View\nNotices", Icons.campaign_rounded,
-                        Colors.indigo, "/notices"),
-                    _buildActionCard("Manage\nVehicles", Icons.directions_car,
-                        Colors.deepPurple, "/admin-vehicles"),
-                    _buildActionCard(
-                        "Manage\nContacts",
-                        Icons.contact_phone_rounded,
-                        Colors.green,
-                        "/admin-contacts"),
+                    FadeInSlide(
+                        delay: 0.1,
+                        child: _buildActionCard(
+                            "Manage\nUsers",
+                            Icons.groups_rounded,
+                            Colors.orange,
+                            "/society-users")),
+                    FadeInSlide(
+                        delay: 0.15,
+                        child: _buildActionCard(
+                            "Invite\nResident",
+                            Icons.group_add_rounded,
+                            Colors.blueAccent,
+                            "/invite-resident")),
+                    FadeInSlide(
+                        delay: 0.2,
+                        child: _buildActionCard(
+                            "Pending\nTenants",
+                            Icons.person_add_alt_1_rounded,
+                            const Color(0xFFE57373),
+                            "/pending-tenants")),
+                    FadeInSlide(
+                        delay: 0.25,
+                        child: _buildActionCard(
+                            "Invite\nGuard",
+                            Icons.security_rounded,
+                            Colors.green,
+                            "/invite-guard")),
+                    FadeInSlide(
+                        delay: 0.3,
+                        child: _buildActionCard(
+                            "All\nMaintenance",
+                            Icons.list_alt_rounded,
+                            Colors.teal,
+                            "/admin-maintenance-list")),
+                    FadeInSlide(
+                        delay: 0.35,
+                        child: _buildActionCard(
+                            "Generate\nMaintenance",
+                            Icons.receipt_long_rounded,
+                            Colors.deepPurple,
+                            "/generate-maintenance")),
+                    FadeInSlide(
+                        delay: 0.4,
+                        child: _buildActionCard(
+                            "Manage\nComplaints",
+                            Icons.admin_panel_settings_rounded,
+                            Colors.redAccent,
+                            "/admin-complaints")),
+                    FadeInSlide(
+                        delay: 0.45,
+                        child: _buildActionCard(
+                            "Create\nNotice",
+                            Icons.post_add_rounded,
+                            Colors.blue,
+                            "/create-notice")),
+                    FadeInSlide(
+                        delay: 0.5,
+                        child: _buildActionCard("View\nNotices",
+                            Icons.campaign_rounded, Colors.indigo, "/notices")),
+                    FadeInSlide(
+                        delay: 0.55,
+                        child: _buildActionCard(
+                            "Manage\nVehicles",
+                            Icons.directions_car,
+                            Colors.deepPurpleAccent,
+                            "/admin-vehicles")),
+                    FadeInSlide(
+                        delay: 0.6,
+                        child: _buildActionCard(
+                            "Manage\nContacts",
+                            Icons.contact_phone_rounded,
+                            Colors.green,
+                            "/admin-contacts")),
+                    FadeInSlide(
+                        delay: 0.65,
+                        child: _buildActionCard("SOS\nAlerts",
+                            Icons.warning_rounded, Colors.red, "/admin-sos")),
                   ],
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -323,42 +437,62 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // ===============================
-  // 🔥 SINGLE SMART BANNER
-  // ===============================
   Widget _buildUpgradeCard() {
     final hasSubscription = subscriptionActive;
     final isLimitReached = hasSubscription && usedFlats > allowedFlats;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: !hasSubscription
-            ? Colors.red.shade50
+            ? Colors.red.withOpacity(0.1)
             : isLimitReached
-                ? Colors.red.shade50
-                : Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
+                ? Colors.red.withOpacity(0.1)
+                : Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: !hasSubscription
-              ? Colors.red
+              ? Colors.red.withOpacity(0.4)
               : isLimitReached
-                  ? Colors.red
-                  : Colors.orange,
+                  ? Colors.red.withOpacity(0.4)
+                  : Colors.orange.withOpacity(0.4),
+          width: 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: (!hasSubscription ? Colors.red : Colors.orange)
+                .withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.workspace_premium,
-            color: !hasSubscription
-                ? Colors.red
-                : isLimitReached
-                    ? Colors.red
-                    : Colors.orange,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 5,
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.workspace_premium_rounded,
+              color: !hasSubscription
+                  ? Colors.red
+                  : isLimitReached
+                      ? Colors.red
+                      : Colors.orange,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 16),
 
           Expanded(
             child: Column(
@@ -370,33 +504,45 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.red,
+                      fontSize: 14,
                     ),
                   )
                 else ...[
-                  // ✅ FIXED (NO preview)
                   Text(
                     "$usedFlats / $allowedFlats Flats Used",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.color
+                          ?.withOpacity(0.9),
+                      fontSize: 15,
+                    ),
                   ),
-
                   if (extraFlats > 0)
-                    Text(
-                      "$extraFlats extra flat(s) not covered ⚠",
-                      style: const TextStyle(color: Colors.red),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "$extraFlats extra flat(s) not covered ⚠",
+                        style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
                     ),
                 ],
               ],
             ),
           ),
 
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               if (!subscriptionActive) {
                 Navigator.pushNamed(context, "/subscription");
               } else if (usedFlats > allowedFlats) {
                 Navigator.pushNamed(context, "/upgrade-subscription");
-              }
-              else {
+              } else {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -404,22 +550,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 );
               }
             },
-            child: Text(!hasSubscription
-                ? "Subscribe"
-                : (usedFlats > allowedFlats)
-                    ? "Upgrade"
-                    : "View"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: !hasSubscription
+                  ? Colors.red
+                  : isLimitReached
+                      ? Colors.red
+                      : Colors.orange,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Text(
+              !hasSubscription
+                  ? "Subscribe"
+                  : (usedFlats > allowedFlats)
+                      ? "Upgrade"
+                      : "View",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+      height: 30,
       decoration: const BoxDecoration(
-        color: AppColors.primary,
+        gradient: LinearGradient(
+          colors: [AppColors.primary, Color(0xFF1E88E5)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(30),
           bottomRight: Radius.circular(30),
@@ -430,26 +596,44 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildSwitchModeCard() {
     return Container(
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.teal.shade400, Colors.teal.shade700],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF00B4DB), Color(0xFF0083B0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0083B0).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const Icon(Icons.home_rounded, color: Colors.white),
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.home_rounded, color: Colors.white, size: 28),
+        ),
         title: const Text(
           "Switch to Personal Mode",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: const Text(
           "Access your flat dashboard",
-          style: TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(color: Colors.white70, fontSize: 13),
         ),
         trailing: const Icon(Icons.arrow_forward_ios_rounded,
-            color: Colors.white, size: 16),
+            color: Colors.white, size: 20),
         onTap: () {
           AnimatedNavigation.pushReplacement(
             context,
@@ -468,27 +652,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: color.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 32),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
             const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.color
+                    ?.withOpacity(0.8),
               ),
             ),
           ],

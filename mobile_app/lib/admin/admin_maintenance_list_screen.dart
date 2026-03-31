@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/widgets/fade_in_slide.dart';
 import 'package:intl/intl.dart';
 
 class AdminMaintenanceListScreen extends StatefulWidget {
@@ -334,7 +335,7 @@ class _AdminMaintenanceListScreenState
       margin: const EdgeInsets.all(6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -348,10 +349,19 @@ class _AdminMaintenanceListScreenState
         children: [
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
           const SizedBox(height: 4),
-          Text(title),
+          Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+          ),
         ],
       ),
     );
@@ -417,13 +427,14 @@ class _AdminMaintenanceListScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text("All Maintenance Bills")),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("All Maintenance Bills"),
+      ),
       body: loading
           ? const Center(
               child: WalkingLoader(
                 size: 60,
-                color: AppColors.primary,
               ),
             )
           : filteredBills.isEmpty
@@ -452,20 +463,22 @@ class _AdminMaintenanceListScreenState
 
                           final showReminder = isDueInFiveDays(dueDate, status);
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
+                          return FadeInSlide(
+                            delay: index * 0.05,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -491,7 +504,7 @@ class _AdminMaintenanceListScreenState
                                       style: TextStyle(
                                         color: showReminder
                                             ? Colors.red
-                                            : Colors.grey[700],
+                                            : Theme.of(context).textTheme.bodySmall?.color,
                                       ),
                                     ),
                                   ),
@@ -560,10 +573,11 @@ class _AdminMaintenanceListScreenState
                                     : const SizedBox(),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                   ),
                 ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-
+import '../core/storage/cache_service.dart';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
@@ -54,18 +53,12 @@ class _ResidentVisitorHistoryScreenState
   ============================ */
 
   Future<void> loadCachedHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cached = prefs.getString(cacheKey);
-
-    if (cached != null) {
-      final decoded = jsonDecode(cached);
-
-      if (mounted) {
-        setState(() {
-          visitors = decoded;
-          loading = false;
-        });
-      }
+    final cached = await CacheService.getData(cacheKey);
+    if (cached != null && mounted) {
+      setState(() {
+        visitors = cached;
+        loading = false;
+      });
     }
   }
 
@@ -74,8 +67,7 @@ class _ResidentVisitorHistoryScreenState
   ============================ */
 
   Future<void> saveCache(List data) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(cacheKey, jsonEncode(data));
+    await CacheService.saveData(cacheKey, data);
   }
 
   /* ============================
@@ -83,23 +75,40 @@ class _ResidentVisitorHistoryScreenState
   ============================ */
 
   Future<void> loadVisitorHistory() async {
-    setState(() {
-      loading = true;
+    if (visitors.isEmpty) {
+      setState(() {
+        loading = true;
+        currentPage = 1;
+        hasMore = true;
+      });
+    } else {
       currentPage = 1;
       hasMore = true;
-    });
+    }
 
     final response = await ApiService.get(
         "/users/resident-visitor-history?page=$currentPage&limit=$limit");
 
     if (response != null && response["success"] == true) {
-      visitors = response["visitors"] ?? [];
+      final newVisitors = response["visitors"] ?? [];
+
+      final String cachedStr = jsonEncode(visitors);
+      final String freshStr = jsonEncode(newVisitors);
+
+      if (cachedStr == freshStr && !loading) {
+         hasMore = response["hasMore"] ?? false;
+         return; // Array exactly matches cache
+      }
+
+      visitors = newVisitors;
       hasMore = response["hasMore"] ?? false;
 
-      await saveCache(visitors); // save cache
+      await saveCache(visitors); // update memory
     }
 
-    setState(() => loading = false);
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   /* ============================
@@ -158,11 +167,10 @@ class _ResidentVisitorHistoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Visitor History"),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
         elevation: 0,
       ),
       body: loading
@@ -200,7 +208,7 @@ class _ResidentVisitorHistoryScreenState
 
                     return Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(

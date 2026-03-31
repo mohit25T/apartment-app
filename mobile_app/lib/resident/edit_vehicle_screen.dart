@@ -96,11 +96,10 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Edit Vehicle"),
-        backgroundColor: AppColors.primary,
       ),
 
       body: SingleChildScrollView(
@@ -156,9 +155,6 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: updateVehicle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
                 child: const Text("Update Vehicle"),
               ),
             )

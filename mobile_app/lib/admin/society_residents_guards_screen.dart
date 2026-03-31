@@ -3,6 +3,7 @@ import '../core/api/api_service.dart';
 import '../core/storage/user_storage.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/widgets/fade_in_slide.dart';
 
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -136,10 +137,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Society Users"),
-        backgroundColor: AppColors.primary,
       ),
       body: loading
           ? const Center(child: WalkingLoader(size: 60))
@@ -152,12 +152,14 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   final user = users[index];
                   final bool showBlock = shouldShowBlockButton(user);
 
-                  return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    padding: const EdgeInsets.all(16),
+                  return FadeInSlide(
+                    delay: index * 0.05,
+                    child: Container(
+                      margin:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -170,7 +172,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                           backgroundImage: user["profileImage"] != null
                               ? NetworkImage(
                                   user["profileImage"] +
@@ -178,8 +180,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                 )
                               : null,
                           child: user["profileImage"] == null
-                              ? const Icon(Icons.person,
-                                  color: AppColors.primary)
+                              ? Icon(Icons.person,
+                                  color: Theme.of(context).primaryColor)
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -271,8 +273,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
                           ),
                       ],
                     ),
-                  );
-                },
+                  ),
+                );
+              },
               ),
             ),
     );

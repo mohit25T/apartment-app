@@ -81,11 +81,10 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Add Vehicle"),
-        backgroundColor: AppColors.primary,
       ),
 
       body: SingleChildScrollView(
@@ -141,9 +140,6 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: addVehicle,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
                 child: const Text("Save Vehicle"),
               ),
             )

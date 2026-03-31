@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
@@ -51,11 +52,10 @@ class _AddContactScreenState extends State<AddContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Add Contact"),
-        backgroundColor: AppColors.primary,
       ),
 
       body: Padding(
@@ -81,11 +81,14 @@ class _AddContactScreenState extends State<AddContactScreen> {
               TextFormField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   labelText: "Phone Number",
+                  counterText: "",
                 ),
                 validator: (v) =>
-                    v == null || v.isEmpty ? "Required" : null,
+                    v == null || v.isEmpty || v.length != 10 ? "Required (10 digits)" : null,
               ),
 
               const SizedBox(height: 16),
@@ -127,13 +130,9 @@ class _AddContactScreenState extends State<AddContactScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
                   onPressed: loading ? null : createContact,
                   child: loading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const CircularProgressIndicator()
                       : const Text("Add Contact"),
                 ),
               ),

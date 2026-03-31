@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
+import '../core/widgets/fade_in_slide.dart';
 import 'add_vehicle_screen.dart';
 import 'edit_vehicle_screen.dart';
 
@@ -67,10 +68,9 @@ class _ResidentVehicleListScreenState extends State<ResidentVehicleListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("My Vehicles"),
-        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -79,7 +79,6 @@ class _ResidentVehicleListScreenState extends State<ResidentVehicleListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add),
         onPressed: () async {
           await Navigator.push(
@@ -101,12 +100,14 @@ class _ResidentVehicleListScreenState extends State<ResidentVehicleListScreen> {
                   itemBuilder: (context, index) {
                     final v = vehicles[index];
 
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
+                    return FadeInSlide(
+                      delay: index * 0.05,
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: ListTile(
                         leading: const Icon(Icons.directions_car),
                         title: Text(
                           v["vehicleNumber"],
@@ -137,9 +138,10 @@ class _ResidentVehicleListScreenState extends State<ResidentVehicleListScreen> {
                           ],
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
+              ),
     );
   }
 }

@@ -122,11 +122,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Common Contacts"),
-        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -138,7 +137,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
       // ➕ Admin Only
       floatingActionButton: isAdmin
           ? FloatingActionButton(
-              backgroundColor: AppColors.primary,
               child: const Icon(Icons.add),
               onPressed: () async {
                 final result = await Navigator.push(
@@ -236,7 +234,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.1),
+          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
           child: const Icon(Icons.phone, color: Colors.green),
         ),
         title: Text(

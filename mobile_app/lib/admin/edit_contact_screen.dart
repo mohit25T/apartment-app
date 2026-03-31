@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/api/api_service.dart';
 import '../core/theme/app_theme.dart';
@@ -111,11 +112,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
         title: const Text("Edit Contact"),
-        backgroundColor: AppColors.primary,
         actions: [
           IconButton(
             icon: deleting
@@ -123,7 +123,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2),
                   )
                 : const Icon(Icons.delete),
             onPressed: deleting ? null : deleteContact,
@@ -154,11 +154,14 @@ class _EditContactScreenState extends State<EditContactScreen> {
               TextFormField(
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
+                maxLength: 10,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   labelText: "Phone Number",
+                  counterText: "",
                 ),
                 validator: (v) =>
-                    v == null || v.isEmpty ? "Required" : null,
+                    v == null || v.isEmpty || v.length != 10 ? "Required (10 digits)" : null,
               ),
 
               const SizedBox(height: 16),
@@ -200,13 +203,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
                   onPressed: loading ? null : updateContact,
                   child: loading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const CircularProgressIndicator()
                       : const Text("Update Contact"),
                 ),
               ),

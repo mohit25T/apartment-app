@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'dart:convert';
 
 import '../core/api/api_service.dart';
+import '../core/storage/cache_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/walking_loader.dart';
 
@@ -43,18 +45,45 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   // ===============================
   // 🔍 Load Preview
   // ===============================
+  // ===============================
+  // 🔍 Load Preview
+  // ===============================
   Future<void> loadPreview() async {
-    setState(() => loading = true);
+    // 1. Optimistic Cache Load
+    try {
+      final cachedPreview = await CacheService.getData("subscription_preview");
+      if (cachedPreview != null && mounted) {
+        setState(() {
+          preview = cachedPreview;
+          isUpgrade = cachedPreview["isUpgrade"] ?? false;
+          loading = false;
+        });
+      }
+    } catch (_) {}
 
-    final res =
-        await ApiService.get("/subscription/preview?plan=$selectedPlan");
+    try {
+      final res = await ApiService.get("/subscription/preview?plan=$selectedPlan");
 
-    if (res != null) {
-      setState(() {
-        preview = res;
-        isUpgrade = res["isUpgrade"] ?? false; // 🔥 IMPORTANT
-        loading = false;
-      });
+      if (res != null) {
+        final String cachedStr = jsonEncode(preview ?? {});
+        final String freshStr = jsonEncode(res);
+
+        if (cachedStr == freshStr && !loading) return;
+
+        await CacheService.saveData("subscription_preview", res);
+
+        if (mounted) {
+          setState(() {
+            preview = res;
+            isUpgrade = res["isUpgrade"] ?? false;
+            loading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => loading = false);
+      }
+    } catch (e) {
+      if (mounted && loading == true) setState(() => loading = false);
     }
   }
 
@@ -141,30 +170,205 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   // ===============================
+  // 🎨 UI COMPONENTS
+  // ===============================
+  Widget _buildInfoCard({
+    required String title,
+    required List<Widget> children,
+    IconData? icon,
+    Color? accentColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (accentColor ?? AppColors.primary).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, size: 20, color: accentColor ?? AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {bool isBold = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+              fontSize: 15,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanToggle() {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          _buildToggleItem("monthly", "Monthly"),
+          _buildToggleItem("yearly", "Yearly"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleItem(String plan, String label) {
+    final bool isSelected = selectedPlan == plan;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedPlan = plan;
+            loading = true;
+          });
+          loadPreview();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppColors.primary : Colors.grey.shade600,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===============================
   // UI
   // ===============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: loading
-          ? const Center(child: WalkingLoader(size: 60))
+          ? const Center(child: WalkingLoader(size: 80))
           : CustomScrollView(
               slivers: [
                 SliverAppBar(
-                  expandedHeight: 220,
+                  expandedHeight: 200,
                   pinned: true,
-                  backgroundColor: AppColors.primary,
                   elevation: 0,
                   flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: true,
                     title: Text(
                       isUpgrade ? "Upgrade Plan" : "Premium Plan",
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        fontSize: 20,
                       ),
                     ),
-                    centerTitle: true,
+                    background: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [AppColors.primary, Color(0xFF1565C0)],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -30,
+                            top: -30,
+                            child: CircleAvatar(
+                              radius: 120,
+                              backgroundColor: Colors.white.withOpacity(0.05),
+                            ),
+                          ),
+                          Center(
+                            child: Icon(
+                              Icons.star_rounded,
+                              size: 80,
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -173,18 +377,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
-                        // 🔥 SHOW EXTRA FLATS IF UPGRADE
-                        if (isUpgrade) ...[
-                          Text(
-                            "New Flats Detected: ${preview?["extraFlats"] ?? 0}",
-                            style: const TextStyle(
-                              color: Colors.red,
+                        // 🔄 PLAN SELECTOR
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4, bottom: 12),
+                          child: Text(
+                            "Select Subscription Plan",
+                            style: TextStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 20),
-                        ],
+                        ),
 
                         // 📊 SUMMARY
                         Text("Flats: ${preview?["totalFlats"] ?? 0}"),
